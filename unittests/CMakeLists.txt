@@ -17,6 +17,8 @@ add_subdirectory(contracts)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/config.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.hpp ESCAPE_QUOTES)
 
 file(GLOB UNIT_TESTS "*.cpp")
+list(APPEND UNIT_TESTS "${CMAKE_CURRENT_SOURCE_DIR}/wax/signature_tests.cpp")
+
 
 add_executable( unit_test ${UNIT_TESTS} ${WASM_UNIT_TESTS} )
 target_link_libraries( unit_test eosio_chain chainbase eosio_testing fc ${PLATFORM_SPECIFIC_LIBS} )
@@ -27,7 +29,9 @@ target_include_directories( unit_test PUBLIC
                             ${CMAKE_BINARY_DIR}/contracts
                             ${CMAKE_CURRENT_SOURCE_DIR}/contracts
                             ${CMAKE_CURRENT_BINARY_DIR}/contracts
-                            ${CMAKE_CURRENT_BINARY_DIR}/include )
+                            ${CMAKE_CURRENT_BINARY_DIR}/include
+                            ${CMAKE_BINARY_DIR}/unittests/contracts)
+
 add_dependencies(unit_test asserter test_api test_api_mem test_api_db test_ram_limit test_api_multi_index eosio.token proxy identity identity_test stltest eosio.system eosio.token eosio.bios multi_index_test noop eosio.msig payloadless tic_tac_toe deferred_test snapshot_test)
 
 #Manually run unit_test for all supported runtimes

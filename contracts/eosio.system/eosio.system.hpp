@@ -208,6 +208,7 @@ namespace eosiosystem {
          void setparams( const eosio::blockchain_parameters& params );
 
          // functions defined in producer_pay.cpp
+
          void claimrewards( const account_name& owner );
 
          void setpriv( account_name account, uint8_t ispriv );

@@ -48,7 +48,7 @@
    DISK_MIN=20
    DOXYGEN=false
    ENABLE_COVERAGE_TESTING=false
-   CORE_SYMBOL_NAME="SYS"
+   CORE_SYMBOL_NAME="WAX"
    # Use current directory's tmp directory if noexec is enabled for /tmp
    if (mount | grep "/tmp " | grep --quiet noexec); then
         mkdir -p $SOURCE_DIR/tmp

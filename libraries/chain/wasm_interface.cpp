@@ -764,6 +764,62 @@ class crypto_api : public context_aware_api {
       void ripemd160(array_ptr<char> data, size_t datalen, fc::ripemd160& hash_val) {
          hash_val = encode<fc::ripemd160::encoder>( data, datalen );
       }
+
+    /**
+     * WAX specific
+     *
+     * signature, exponent and modulus must be hexadecimal strings 
+     */
+    public: int verify_rsa_sha256_sig(
+                    array_ptr<char> message, size_t message_len,
+                    array_ptr<char> signature, size_t signature_len,
+                    array_ptr<char> exponent, size_t exponent_len,
+                    array_ptr<char> modulus, size_t modulus_len) {
+        using std::string;
+        using namespace std::string_literals;
+
+        const char* errPrefix = "[ERROR] verify_rsa_sha256_sig: ";
+
+        try {
+            if (message_len && signature_len && exponent_len && 
+                modulus_len == signature_len && (modulus_len % 2 == 0))
+            {
+                fc::sha256 msg_sha256;
+                sha256(message, message_len, msg_sha256);
+
+                auto pkcs1_encoding =
+                    "3031300d060960864801650304020105000420"s +
+                    fc::to_hex(msg_sha256.data(), msg_sha256.data_size());
+
+                auto emLen = modulus_len / 2;
+                auto tLen = pkcs1_encoding.size() / 2;
+
+                if (emLen >= tLen + 11) {
+                    pkcs1_encoding = "0001"s + string(2*(emLen - tLen - 3), 'f') + "00"s + pkcs1_encoding;
+
+                    const cpp_int signature_int { "0x"s + string{signature, signature_len} };
+                    const cpp_int exponent_int  { "0x"s + string{exponent, exponent_len} };
+                    const cpp_int modulus_int   { "0x"s + string{modulus, modulus_len} };
+
+                    const cpp_int decoded = powm(signature_int, exponent_int, modulus_int);
+
+                    return cpp_int{"0x"s + pkcs1_encoding} == decoded;
+                }
+                else
+                    context.console_append(errPrefix, "Intended encoding message lenght too short", '\n');
+            }
+            else
+                context.console_append(errPrefix, "At least 1 param has an invalid length", '\n');
+        }
+        catch(const std::exception& e) {
+            context.console_append(errPrefix, e.what(), '\n');
+        }
+        catch(...) {
+            context.console_append(errPrefix, "Unknown exception\n");
+        }
+
+        return false;
+    }
 };
 
 class permission_api : public context_aware_api {
@@ -1753,6 +1809,8 @@ REGISTER_INTRINSICS(crypto_api,
    (sha256,                 void(int, int, int)           )
    (sha512,                 void(int, int, int)           )
    (ripemd160,              void(int, int, int)           )
+  
+    (verify_rsa_sha256_sig,  int(int, int, int, int, int, int, int, int))
 );
 
 
