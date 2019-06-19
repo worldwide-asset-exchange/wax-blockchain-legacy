@@ -42,10 +42,10 @@ EOSIO currently supports the following operating systems:
 - MacOS Darwin 10.12 and higher (MacOS 10.14.x recommended)
 
 ### Resources
-[Website](https://wax.io)
-[Blog](https://wax.io/blog)
-[Community Telegram Group](https://t.me/wax_io)
-[White Paper](https://wax.io/uploads/WAX_White_Paper.pdf)
+- [Website](https://wax.io)
+- [Blog](https://wax.io/blog)
+- [Community Telegram Group](https://t.me/wax_io)
+- [White Paper](https://wax.io/uploads/WAX_White_Paper.pdf)
 
 ### License
 [MIT](https://github.com/worldwide-asset-exchange/wax-blockchain/blob/master/LICENSE)
