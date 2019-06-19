@@ -1,5 +1,3 @@
-# WAX-BLOCKCHAIN
-
 ## Welcome to the WAX Source Code Repository!
 This software enables businesses to rapidly build and deploy high-performance and high-security blockchain-based applications.
 
