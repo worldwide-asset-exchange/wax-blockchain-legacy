@@ -21,7 +21,8 @@ There is no public testnet running currently.
 If you have previously installed wax-blockchain, please run the eosio_uninstall script (it is in the directory where you cloned wax-blockchain).
 Right now we are not providing pre-compiled packages, so you have to compile the source code and after that, install it with the following instructions:
 
-```
+```console
+
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
