@@ -19,15 +19,15 @@ WAX is released under the open source MIT license and is offered “AS IS” wit
 
 There is no public testnet running currently.
 ### Installation Instructions
-If you have previously installed wax-blockchain, please run the eosio_uninstall script (it is in the directory where you cloned wax-blockchain). Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
+If you have previously installed wax-blockchain, please run the wax_uninstall script (it is in the directory where you cloned wax-blockchain). Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
 
 ```console
 
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
-$ ./eosio_compile.sh
-$ sudo ./eosio_install.sh
+$ ./wax_compile.sh
+$ sudo ./wax_install.sh
 ```
 
 ### Supported Operating Systems
