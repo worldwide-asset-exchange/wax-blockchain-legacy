@@ -29,7 +29,7 @@ cd wax-blockchain/patches/fc
 ./apply_patch.sh
 ```
 
-After patching the library, you can resume your building
+After patching the library, you can resume your building process
 
 ```console
 cd wax-blockchain/build
