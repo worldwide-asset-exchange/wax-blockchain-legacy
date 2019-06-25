@@ -35,7 +35,7 @@ If you have trouble when building the blockchain, may be this can help you:
 - [FC linking problem](patches/fc/README.md)
 
 ### Running a full node
-The 'mainnet' directory contains configuration files and instructions to launch a full node.
+The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/mainnet) directory contains configuration files and instructions to launch a full node.
 
 ### Supported Operating Systems
 EOSIO currently supports the following operating systems:
