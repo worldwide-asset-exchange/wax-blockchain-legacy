@@ -77,7 +77,7 @@ fi
    }
 
    if [ ! -d "${BUILD_DIR}" ]; then
-      printf "\\n\\tError, eosio_build.sh has not ran.  Please run ./eosio_build.sh first!\\n\\n"
+      printf "\\n\\tError, wax_build.sh has not ran.  Please run ./wax_build.sh first!\\n\\n"
       exit -1
    fi
 
@@ -103,14 +103,12 @@ fi
    install_symlinks   
    create_cmake_symlink "eosio-config.cmake"
 
-   printf "\n\n${bldred}\t _______  _______  _______ _________ _______\n"
-   printf '\t(  ____ \(  ___  )(  ____ \\\\__   __/(  ___  )\n'
-   printf "\t| (    \/| (   ) || (    \/   ) (   | (   ) |\n"
-   printf "\t| (__    | |   | || (_____    | |   | |   | |\n"
-   printf "\t|  __)   | |   | |(_____  )   | |   | |   | |\n"
-   printf "\t| (      | |   | |      ) |   | |   | |   | |\n"
-   printf "\t| (____/\| (___) |/\____) |___) (___| (___) |\n"
-   printf "\t(_______/(_______)\_______)\_______/(_______)\n${txtrst}"
+   printf "\n\n${bldred}\t __      __  _____  ____  ___ \n"
+   printf "\t/  \    /  \/  _  \ \   \/  / \n"
+   printf "\t\   \/\/   /  /_\  \ \     / \n"
+   printf "\t \        /    |    \/     \ \n"
+   printf "\t  \__/\  /\____|__  /___/\  \ \n"
+   printf "\t       \/         \/      \_/ \n${txtrst}"
 
    printf "\\tFor more information:\\n"
    printf "\\tEOSIO website: https://eos.io\\n"
