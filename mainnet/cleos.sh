@@ -1,0 +1,1 @@
+docker exec -ti nodeos bash -c "cleos $*" 
