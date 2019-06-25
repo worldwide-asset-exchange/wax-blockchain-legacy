@@ -29,6 +29,10 @@ $ git submodule update --init --recursive
 $ ./wax_compile.sh
 $ sudo ./wax_install.sh
 ```
+#### Troubleshooting
+
+If you have trouble when building the blockchain, may be this can help you:
+- [FC linking problem](patches/fc/README.md)
 
 ### Supported Operating Systems
 EOSIO currently supports the following operating systems:
