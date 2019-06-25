@@ -34,6 +34,9 @@ $ sudo ./wax_install.sh
 If you have trouble when building the blockchain, may be this can help you:
 - [FC linking problem](patches/fc/README.md)
 
+### Running a full node
+The 'mainnet' directory contains configuration files and instructions to launch a full node.
+
 ### Supported Operating Systems
 EOSIO currently supports the following operating systems:
 - Amazon 2017.09 and higher
