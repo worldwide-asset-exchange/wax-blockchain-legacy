@@ -26,7 +26,7 @@ If you have previously installed wax-blockchain, please run the wax_uninstall sc
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
-$ ./wax_compile.sh
+$ ./wax_build.sh
 $ sudo ./wax_install.sh
 ```
 #### Troubleshooting
