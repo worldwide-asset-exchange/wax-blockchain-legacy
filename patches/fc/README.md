@@ -1,6 +1,6 @@
 # Building problem due to FC library
 
-## If, when compiling tha blockchain on Ubuntu 18.04, you experience the following problem:
+## If, when compiling the blockchain on Ubuntu 18.04, you experience the following problem:
 
 ```console
 Scanning dependencies of target test_cypher_suites
