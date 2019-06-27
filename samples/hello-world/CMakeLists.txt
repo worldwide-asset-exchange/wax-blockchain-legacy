@@ -26,5 +26,5 @@ project(helloworld)
 
 find_package(eosio.cdt REQUIRED) 
 
-add_contract(${PROJECT_NAME} ${PROJECT_NAME} "hello-world.cpp")
+add_contract(${PROJECT_NAME} ${PROJECT_NAME} hello-world.cpp)
 
