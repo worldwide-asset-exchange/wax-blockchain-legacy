@@ -23,7 +23,7 @@
 CONTRACT_NAME = helloworld
 CONTRACT_ACCOUNT = ${CONTRACT_NAME}
 BLOCKCHAIN_DEV_VERSION = wax-1.6.1-1.1.1
-NODEOS_URL = https://chain.wax.io/
+NODEOS_URL ?= https://chain.wax.io/
 CONTAINER = ${CONTRACT_NAME}-sample
 WORK_DIR = /opt/${CONTRACT_NAME}
 DOCKER_COMMON = -v `pwd`:${WORK_DIR} --name ${CONTAINER} -w ${WORK_DIR} waxteam/dev:${BLOCKCHAIN_DEV_VERSION}

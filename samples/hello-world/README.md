@@ -12,11 +12,12 @@
 For building and deploying the contract you are going to use the *make* utility. The syntax is:
 
 ```
-$ make [ build | clean | deploy CONTRACT_PRIVATE_KEY=<your contract private key> ]
+$ make [ build | clean | deploy CONTRACT_PRIVATE_KEY=<your contract private key> [NODEOS_URL=<deploment URL>] ]
 ```
 
 Notes:
 - The building process uses our (development image)[https://hub.docker.com/r/waxteam/dev] from docker hub.
 - Be aware that you need to build your contract first in order to deploy it.
 - CONTRACT_PRIVATE_KEY parameter is mandatory to deploy the contract.
+- As you can see NODEOS_URL is optional, its default value is https://chain.wax.io/
 
