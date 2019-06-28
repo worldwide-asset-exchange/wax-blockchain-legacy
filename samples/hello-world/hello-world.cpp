@@ -23,16 +23,14 @@
 #include <eosiolib/eosio.hpp>
 
 CONTRACT helloworld: public eosio::contract {
-
 public:
     helloworld(eosio::name receiver, eosio::name code, eosio::datastream<const char*> ds)
         : contract(receiver, code, ds) {
     }
 
-    ACTION print() {
+    ACTION greet() {
         eosio::print("Hello World!\n");
     }
-
 };
 
-EOSIO_DISPATCH(helloworld, (print))
+EOSIO_DISPATCH(helloworld, (greet))
