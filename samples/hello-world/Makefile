@@ -21,7 +21,6 @@
 # THE SOFTWARE.
 
 CONTRACT_NAME = helloworld
-CONTRACT_ACCOUNT = ${CONTRACT_NAME}
 BLOCKCHAIN_DEV_VERSION = wax-1.6.1-1.1.1
 NODEOS_URL ?= https://chain.wax.io/
 CONTAINER = ${CONTRACT_NAME}-sample
@@ -42,6 +41,9 @@ clean:
 
 .PHONY: deploy
 deploy: dev-docker-stop
+ifndef CONTRACT_ACCOUNT
+	$(error CONTRACT_ACCOUNT is undefined)
+endif
 ifndef CONTRACT_PRIVATE_KEY
 	$(error CONTRACT_PRIVATE_KEY is undefined)
 endif
