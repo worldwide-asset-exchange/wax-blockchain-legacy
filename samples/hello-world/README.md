@@ -12,7 +12,7 @@
 For building and deploying the contract you are going to use the *make* utility. The syntax is:
 
 ```
-$ make [ build | clean | deploy CONTRACT_PRIVATE_KEY=<your contract private key> [NODEOS_URL=<deploment URL>] ]
+$ make [ build | clean | deploy CONTRACT_PRIVATE_KEY=<your contract private key> [NODEOS_URL=<deployment URL>] ]
 ```
 
 Notes:
