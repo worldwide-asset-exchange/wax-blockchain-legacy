@@ -1,6 +1,6 @@
 # Hello World sample
 
-## The idea of this sample is to show how to build a simple smart contract project.
+## The idea of this sample is to show how to build and deploy a simple smart contract project.
 
 ### Requirements
 - docker, installed and configured to run without sudo
@@ -16,7 +16,7 @@ $ make [ build | clean | deploy CONTRACT_PRIVATE_KEY=<your contract private key>
 ```
 
 Notes:
-- The building process uses our (development image)[https://hub.docker.com/r/waxteam/dev] from docker hub.
+- The building process uses our [development image](https://hub.docker.com/r/waxteam/dev) from docker hub.
 - Be aware that you need to build your contract first in order to deploy it.
 - CONTRACT_PRIVATE_KEY parameter is mandatory to deploy the contract.
 - As you can see NODEOS_URL is optional, its default value is https://chain.wax.io/
