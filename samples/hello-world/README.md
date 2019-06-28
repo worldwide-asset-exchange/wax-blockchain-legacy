@@ -1,6 +1,6 @@
 # Hello World sample
 
-## The idea of this sample is to show how to build a simple smart contract project.
+## The idea of this sample is to show how to build and deploy a simple smart contract project.
 
 ### Requirements
 - docker, installed and configured to run without sudo
