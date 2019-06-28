@@ -42,13 +42,13 @@ clean:
 
 .PHONY: deploy
 deploy: dev-docker-stop
-ifndef CONTRACT_PRIV_KEY
-	$(error CONTRACT_PRIV_KEY is undefined)
+ifndef CONTRACT_PRIVATE_KEY
+	$(error CONTRACT_PRIVATE_KEY is undefined)
 endif
 	docker run ${DOCKER_COMMON} bash -c \
        "rm -f ~/eosio-wallet/${CONTRACT_NAME}.wallet && \
         ${CLEOS} wallet create -n ${CONTRACT_NAME} --to-console && \
-        ${CLEOS} wallet import -n ${CONTRACT_NAME} --private-key ${CONTRACT_PRIV_KEY} && \
+        ${CLEOS} wallet import -n ${CONTRACT_NAME} --private-key ${CONTRACT_PRIVATE_KEY} && \
         ${CLEOSN} set contract ${CONTRACT_ACCOUNT} ${WORK_DIR}/build ${CONTRACT_NAME}.wasm ${CONTRACT_NAME}.abi"
 
 .PHONY: dev-docker-stop
