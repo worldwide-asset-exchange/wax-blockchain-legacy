@@ -59,16 +59,23 @@ create-key: dev-docker-stop
 
 .PHONY: create-account
 create-account: dev-docker-stop
-ifndef CREATOR
-	$(error CREATOR is undefined)
+ifndef WAX_ACCOUNT
+	$(error WAX_ACCOUNT is undefined)
 endif
-ifndef NAME
-	$(error NAME is undefined)
+ifndef WAX_PRIVATE_KEY
+	$(error WAX_PRIVATE_KEY is undefined)
 endif
-ifndef PUBLIC_KEY
-	$(error PUBLIC_KEY is undefined)
+ifndef CONTRACT_ACCOUNT
+	$(error CONTRACT_ACCOUNT is undefined)
 endif
-	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} create account ${CREATOR} ${NAME} ${PUBLIC_KEY}"
+ifndef CONTRACT_PUBLIC_KEY
+	$(error CONTRACT_PUBLIC_KEY is undefined)
+endif
+	docker run ${DOCKER_COMMON} bash -c \
+       "rm -f ~/eosio-wallet/${WAX_ACCOUNT}.wallet && \
+        ${CLEOS} wallet create -n ${WAX_ACCOUNT} --to-console && \
+        ${CLEOS} wallet import -n ${WAX_ACCOUNT} --private-key ${WAX_PRIVATE_KEY} && \
+        ${CLEOSN} create account ${WAX_ACCOUNT} ${CONTRACT_ACCOUNT} ${CONTRACT_PUBLIC_KEY}"
 
 .PHONY: dev-docker-stop
 dev-docker-stop:
