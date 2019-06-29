@@ -14,30 +14,28 @@ For building and deploying the contract you are going to use the *make* utility.
 ```
 $ make [ build |
 
-         test CONTRACT_ACCOUNT=<the account used to deploy the contract> |
-
          clean |
 
          create-key |
 
          create-account WAX_ACCOUNT=<an already created account (in WAX portal)>
                         WAX_PRIVATE_KEY=<the WAX account private key>
-                        CONTRACT_ACCOUNT=<the account name to be created>
+                        CONTRACT_ACCOUNT=<the name of the account to be created>
                         PUBLIC_KEY=<the public key of the new account> |
 
          deploy CONTRACT_ACCOUNT=<account used to deploy>
-                CONTRACT_PRIVATE_KEY=<the account private key>
-                [NODEOS_URL=<deployment URL>] ]
+                CONTRACT_PRIVATE_KEY=<the contract account private key>
+                [NODEOS_URL=<deployment URL>] | 
+         
+         test CONTRACT_ACCOUNT=<the account used to deploy the contract> ]
 ```
 
 #### Notes:
 - The building process uses our [development image](https://hub.docker.com/r/waxteam/dev) from docker hub.
 - Be aware that you need:
--- to build your contract first in order to deploy it.
--- to deploy your contract first in order to test it.
-- CONTRACT_ACCOUNT parameter is mandatory to deploy the contract.
-- CONTRACT_PRIVATE_KEY parameter is mandatory to deploy the contract. It's the associated private key of the contract account.
-- NODEOS_URL parameter is optional, its default value is https://chain.wax.io/
+  - to build your contract first in order to deploy it.
+  - to deploy your contract first in order to test it.
+- NODEOS_URL parameter is the only one that is optional, its default value is the mainnet deployment address  https://chain.wax.io/
 
 #### Example:
 ```
@@ -63,6 +61,6 @@ make create-account WAX_ACCOUNT=foocreator WAX_PRIVATE_KEY=<private key for your
 # Deploy the smart contract to the mainnet
 make deploy CONTRACT_ACCOUNT=foo CONTRACT_PRIVATE_KEY=<private key from 'create-key'>
 
-# Test your deployed contract
+# Test your deployed smart contract
 make test CONTRACT_ACCOUNT=foo
 ```
