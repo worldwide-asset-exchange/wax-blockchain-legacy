@@ -35,6 +35,14 @@ build: dev-docker-stop
 	@mkdir -p build
 	docker run ${AS_LOCAL} ${DOCKER_COMMON} bash -c "cd build && cmake .. && make"
 
+# This requires an already deployed contract
+.PHONY: test
+test: dev-docker-stop
+ifndef CONTRACT_ACCOUNT
+	$(error CONTRACT_ACCOUNT is undefined)
+endif
+	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} push action ${CONTRACT_ACCOUNT} greet '[]' -p ${CONTRACT_ACCOUNT}@active"
+
 .PHONY: clean
 clean:
 	-rm -rf build
@@ -59,16 +67,24 @@ create-key: dev-docker-stop
 
 .PHONY: create-account
 create-account: dev-docker-stop
-ifndef CREATOR
-	$(error CREATOR is undefined)
+ifndef WAX_ACCOUNT
+	$(error WAX_ACCOUNT is undefined)
 endif
-ifndef NAME
-	$(error NAME is undefined)
+ifndef WAX_PRIVATE_KEY
+	$(error WAX_PRIVATE_KEY is undefined)
 endif
-ifndef PUBLIC_KEY
-	$(error PUBLIC_KEY is undefined)
+ifndef CONTRACT_ACCOUNT
+	$(error CONTRACT_ACCOUNT is undefined)
 endif
-	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} create account ${CREATOR} ${NAME} ${PUBLIC_KEY}"
+ifndef CONTRACT_PUBLIC_KEY
+	$(error CONTRACT_PUBLIC_KEY is undefined)
+endif
+	docker run ${DOCKER_COMMON} bash -c \
+       "rm -f ~/eosio-wallet/${WAX_ACCOUNT}.wallet && \
+        ${CLEOS} wallet create -n ${WAX_ACCOUNT} --to-console && \
+        ${CLEOS} wallet import -n ${WAX_ACCOUNT} --private-key ${WAX_PRIVATE_KEY} && \
+        ${CLEOSN} system newaccount ${WAX_ACCOUNT} ${CONTRACT_ACCOUNT} ${CONTRACT_PUBLIC_KEY} \
+                     --stake-net '0.50000000 WAX' --stake-cpu '0.50000000 WAX' --buy-ram-kbytes 32"
 
 .PHONY: dev-docker-stop
 dev-docker-stop:
@@ -78,4 +94,3 @@ dev-docker-stop:
 .PHONY: dev-docker-stop
 dev-docker-start: dev-docker-stop
 	docker run -it ${DOCKER_COMMON} bash
-
