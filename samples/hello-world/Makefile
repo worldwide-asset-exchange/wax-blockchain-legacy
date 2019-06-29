@@ -35,6 +35,14 @@ build: dev-docker-stop
 	@mkdir -p build
 	docker run ${AS_LOCAL} ${DOCKER_COMMON} bash -c "cd build && cmake .. && make"
 
+# This requires an already deployed contract
+.PHONY: test
+test: dev-docker-stop
+ifndef CONTRACT_ACCOUNT
+	$(error CONTRACT_ACCOUNT is undefined)
+endif
+	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} push action ${CONTRACT_ACCOUNT} greet '[]' -p ${CONTRACT_ACCOUNT}@active"
+
 .PHONY: clean
 clean:
 	-rm -rf build
