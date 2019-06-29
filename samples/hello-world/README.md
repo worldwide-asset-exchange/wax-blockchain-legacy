@@ -35,7 +35,8 @@ cd wax-blockchain/samples/hello-world
 # Build the smart contract
 make build
 
-# Optional (unless you have one): create a pair of private/public keys (save the results in a safe place)
+# Optional (unless you have one): create a pair of private/public keys (save the results in 
+# a safe place, they are going to be printed on the screen)
 make create-key
 
 # Optional (unless you have one): create an account
