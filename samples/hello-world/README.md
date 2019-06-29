@@ -12,7 +12,11 @@
 For building and deploying the contract you are going to use the *make* utility. The syntax is:
 
 ```
-$ make [ build | clean | deploy CONTRACT_ACCOUNT=<account used to deploy> CONTRACT_PRIVATE_KEY=<the account private key> [NODEOS_URL=<deployment URL>]
+$ make [ build |
+         clean |
+         create-key |
+         create-account CREATOR=<creator name> NAME=<account name> PUBLIC_KEY=<account public key> |
+         deploy CONTRACT_ACCOUNT=<account used to deploy> CONTRACT_PRIVATE_KEY=<the account private key> [NODEOS_URL=<deployment URL>]
 ```
 
 #### Notes:
@@ -24,8 +28,19 @@ $ make [ build | clean | deploy CONTRACT_ACCOUNT=<account used to deploy> CONTRA
 
 #### Example:
 ```
+# Download the code
 git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 cd wax-blockchain/samples/hello-world
+
+# Build the smart contract
 make build
-make deploy CONTRACT_ACCOUNT=foo CONTRACT_PRIVATE_KEY=<private key for foo>
+
+# Optional (unless you have one): create a pair of private/public keys (save the results in a safe place)
+make create-key
+
+# Optional (unless you have one): create an account
+make create-account CREATOR=foocreator NAME=foo PUBLIC_KEY=<public key from 'create-key'>
+
+# Deploy the smart contract to the mainnet
+make deploy CONTRACT_ACCOUNT=foo CONTRACT_PRIVATE_KEY=<private key from 'create-key'>
 ```

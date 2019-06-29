@@ -53,6 +53,23 @@ endif
         ${CLEOS} wallet import -n ${CONTRACT_NAME} --private-key ${CONTRACT_PRIVATE_KEY} && \
         ${CLEOSN} set contract ${CONTRACT_ACCOUNT} ${WORK_DIR}/build ${CONTRACT_NAME}.wasm ${CONTRACT_NAME}.abi"
 
+.PHONY: create-key
+create-key: dev-docker-stop
+	@docker run ${DOCKER_COMMON} bash -c "${CLEOS} create key --to-console"
+
+.PHONY: create-account
+create-account: dev-docker-stop
+ifndef CREATOR
+	$(error CREATOR is undefined)
+endif
+ifndef NAME
+	$(error NAME is undefined)
+endif
+ifndef PUBLIC_KEY
+	$(error PUBLIC_KEY is undefined)
+endif
+	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} create account ${CREATOR} ${NAME} ${PUBLIC_KEY}"
+
 .PHONY: dev-docker-stop
 dev-docker-stop:
 	@-docker rm -f ${CONTAINER}
