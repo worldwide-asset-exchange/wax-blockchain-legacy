@@ -16,7 +16,7 @@ $ make [ build |
          clean |
          create-key |
          create-account CREATOR=<creator name> NAME=<account name> PUBLIC_KEY=<account public key> |
-         deploy CONTRACT_ACCOUNT=<account used to deploy> 
+         deploy CONTRACT_ACCOUNT=<account used to deploy>
                 CONTRACT_PRIVATE_KEY=<the account private key> [NODEOS_URL=<deployment URL>] ]
 ```
 
@@ -29,6 +29,11 @@ $ make [ build |
 
 #### Example:
 ```
+# To do this example, you will need a WAX Blockchain account and know your private key for it.
+# Create one at https://account.wax.io/
+# Note: You will need sufficient WAX on your account to buy 32 KB of RAM and to stake 1 WAX toward
+# CPU and NET for your contract's account creation.
+
 # Download the code
 git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 cd wax-blockchain/samples/hello-world
@@ -36,12 +41,12 @@ cd wax-blockchain/samples/hello-world
 # Build the smart contract
 make build
 
-# Optional (unless you have one): create a pair of private/public keys (save the results in 
+# Create a pair of private/public keys for your contract account (save the results in
 # a safe place, they are going to be printed on the screen)
 make create-key
 
-# Optional (unless you have one): create an account
-make create-account CREATOR=foocreator NAME=foo PUBLIC_KEY=<public key from 'create-key'>
+# Create an account for your contract
+make create-account WAX_ACCOUNT=foocreator WAX_PRIVATE_KEY=<private key for your WAX account> CONTRACT_ACCOUNT=foo CONTRACT_PUBLIC_KEY=<public key from 'create-key'>
 
 # Deploy the smart contract to the mainnet
 make deploy CONTRACT_ACCOUNT=foo CONTRACT_PRIVATE_KEY=<private key from 'create-key'>

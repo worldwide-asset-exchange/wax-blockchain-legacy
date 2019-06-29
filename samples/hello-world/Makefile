@@ -76,7 +76,7 @@ endif
         ${CLEOS} wallet create -n ${WAX_ACCOUNT} --to-console && \
         ${CLEOS} wallet import -n ${WAX_ACCOUNT} --private-key ${WAX_PRIVATE_KEY} && \
         ${CLEOSN} system newaccount ${WAX_ACCOUNT} ${CONTRACT_ACCOUNT} ${CONTRACT_PUBLIC_KEY} \
-                     --stake-net '0.50000000 WAX' --stake-cpu '0.50000000 WAX' --buy-ram-kbytes 8"
+                     --stake-net '0.50000000 WAX' --stake-cpu '0.50000000 WAX' --buy-ram-kbytes 32"
 
 .PHONY: dev-docker-stop
 dev-docker-stop:
@@ -86,4 +86,3 @@ dev-docker-stop:
 .PHONY: dev-docker-stop
 dev-docker-start: dev-docker-stop
 	docker run -it ${DOCKER_COMMON} bash
-
