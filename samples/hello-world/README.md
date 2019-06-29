@@ -16,7 +16,8 @@ $ make [ build |
          clean |
          create-key |
          create-account CREATOR=<creator name> NAME=<account name> PUBLIC_KEY=<account public key> |
-         deploy CONTRACT_ACCOUNT=<account used to deploy> CONTRACT_PRIVATE_KEY=<the account private key> [NODEOS_URL=<deployment URL>]
+         deploy CONTRACT_ACCOUNT=<account used to deploy> 
+                CONTRACT_PRIVATE_KEY=<the account private key> [NODEOS_URL=<deployment URL>] ]
 ```
 
 #### Notes:
