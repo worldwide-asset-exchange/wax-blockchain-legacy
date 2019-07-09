@@ -1,4 +1,4 @@
-Running a full node
+Running a WAX node
 ===================
 
 Review config.ini to adjust the configuration as needed (the provided example should be enough to run a full node with only the minimal plugins)
