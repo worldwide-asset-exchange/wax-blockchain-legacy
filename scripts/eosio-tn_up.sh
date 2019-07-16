@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# wax-tn_up is a helper script used to start a node that was previously stopped.
+# eosio-tn_up is a helper script used to start a node that was previously stopped.
 # It is not intended to be run stand-alone; it is a companion to the
-# wax-tn_bounce.sh and wax-tn_roll.sh scripts.
+# eosio-tn_bounce.sh and eosio-tn_roll.sh scripts.
 
 connected="0"
 

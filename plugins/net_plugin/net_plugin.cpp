@@ -578,6 +578,9 @@ namespace eosio {
 
       const string peer_name();
 
+      void txn_send_pending(const vector<transaction_id_type>& ids);
+      void txn_send(const vector<transaction_id_type>& txn_lis);
+
       void blk_send_branch();
       void blk_send(const block_id_type& blkid);
       void stop_send();
@@ -1869,7 +1872,6 @@ namespace eosio {
       auto current_endpoint = *endpoint_itr;
       ++endpoint_itr;
       c->connecting = true;
-      c->pending_message_buffer.reset();
       connection_wptr weak_conn = c;
       c->socket->async_connect( current_endpoint, [weak_conn, endpoint_itr, this]( const boost::system::error_code& err ) {
          app().post( priority::low, [weak_conn, endpoint_itr, this, err]() {
@@ -2043,7 +2045,7 @@ namespace eosio {
             [this,weak_conn]( boost::system::error_code ec, std::size_t bytes_transferred ) {
             app().post( priority::medium, [this,weak_conn, ec, bytes_transferred]() {
                auto conn = weak_conn.lock();
-               if (!conn || !conn->socket || !conn->socket->is_open()) {
+               if (!conn) {
                   return;
                }
 
@@ -2391,6 +2393,17 @@ namespace eosio {
          break;
       }
       case catch_up : {
+         if( msg.known_trx.pending > 0) {
+            // plan to get all except what we already know about.
+            req.req_trx.mode = catch_up;
+            send_req = true;
+            size_t known_sum = local_txns.size();
+            if( known_sum ) {
+               for( const auto& t : local_txns.get<by_id>() ) {
+                  req.req_trx.ids.push_back( t.id );
+               }
+            }
+         }
          break;
       }
       case normal: {
@@ -2448,17 +2461,14 @@ namespace eosio {
 
       switch (msg.req_trx.mode) {
       case catch_up :
+         c->txn_send_pending(msg.req_trx.ids);
+         break;
+      case normal :
+         c->txn_send(msg.req_trx.ids);
          break;
       case none :
          if(msg.req_blocks.mode == none)
             c->stop_send();
-         // no break
-      case normal :
-         if( !msg.req_trx.ids.empty() ) {
-            elog( "Invalid request_message, req_trx.ids.size ${s}", ("s", msg.req_trx.ids.size()) );
-            close(c);
-            return;
-         }
          break;
       default:;
       }
