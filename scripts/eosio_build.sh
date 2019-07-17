@@ -228,27 +228,25 @@ execute cd $REPO_ROOT 1>/dev/null
 
 TIME_END=$(( $(date -u +%s) - $TIME_BEGIN ))
 
-echo " _______  _______  _______ _________ _______"
-echo "(  ____ \(  ___  )(  ____   __   __ (  ___  )"
-echo "| (    \/| (   ) || (    \/   ) (   | (   ) |"
-echo "| (__    | |   | || (_____    | |   | |   | |"
-echo "|  __)   | |   | |(_____  )   | |   | |   | |"
-echo "| (      | |   | |      ) |   | |   | |   | |"
-echo "| (____/\| (___) |/\____) |___) (___| (___) |"
-echo "(_______/(_______)\_______)\_______/(_______)"
-echo "=============================================${COLOR_NC}"
+printf "\n\n${bldred}\t __      __  _____  ____  ___ \n"
+printf "\t/  \    /  \/  _  \ \   \/  / \n"
+printf "\t\   \/\/   /  /_\  \ \     / \n"
+printf "\t \        /    |    \/     \ \n"
+printf "\t  \__/\  /\____|__  /___/\  \ \n"
+printf "\t       \/         \/      \_/ \n${txtrst}"
 
-echo "${COLOR_GREEN}EOSIO has been successfully built. $(($TIME_END/3600)):$(($TIME_END%3600/60)):$(($TIME_END%60))"
+echo "${COLOR_GREEN}\nWAX has been successfully built. $(($TIME_END/3600)):$(($TIME_END%3600/60)):$(($TIME_END%60))"
 echo "${COLOR_GREEN}You can now install using: ${SCRIPT_DIR}/eosio_install.sh${COLOR_NC}"
 echo "${COLOR_YELLOW}Uninstall with: ${SCRIPT_DIR}/eosio_uninstall.sh${COLOR_NC}"
 
-echo ""
-echo "${COLOR_CYAN}If you wish to perform tests to ensure functional code:${COLOR_NC}"
-if $ENABLE_MONGO; then
-   echo "${BIN_DIR}/mongod --dbpath ${MONGODB_DATA_DIR} -f ${MONGODB_CONF} --logpath ${MONGODB_LOG_DIR}/mongod.log &"
-   PATH_TO_USE=" PATH=\$PATH:$OPT_DIR/mongodb/bin"
-fi
-echo "cd ${BUILD_DIR} && ${PATH_TO_USE} make test" # PATH is set as currently 'mongo' binary is required for the mongodb test
+printf "\\t\nFor more information:\\n"
+printf "\\tWAX website: https://wax.io\\n"
+printf "\\tDevelopment: https://github.com/worldwide-asset-exchange\\n"
+printf "\\tWAX Telegram Channel: https://t.me/wax_io\\n"
+printf "\\tWAX Blog: https://wax.io/blog\\n"
+printf "\\tWAX Medium Page: https://medium.com/wax-io\\n"
+printf "\\tWAX YouTube Channel: https://www.youtube.com/c/WAXio\\n"
+printf "\\tWAX Twitter Handle: https://twitter.com/WAX_io\\n"
+printf "\\tWAX Facebook Channel: https://www.facebook.com/WAX.io.Community\\n\\n\\n"
 
-echo ""
 resources
