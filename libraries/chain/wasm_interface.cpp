@@ -799,12 +799,12 @@ class crypto_api : public context_aware_api {
          hash_val = encode<fc::ripemd160::encoder>( data, datalen );
       }
 
-    /**
-     * WAX specific
-     *
-     * signature, exponent and modulus must be hexadecimal strings 
-     */
-    public: int verify_rsa_sha256_sig(
+      /**
+       * WAX specific
+       *
+       * signature, exponent and modulus must be hexadecimal strings 
+       */
+      public: int verify_rsa_sha256_sig(
                     array_ptr<char> message, size_t message_len,
                     array_ptr<char> signature, size_t signature_len,
                     array_ptr<char> exponent, size_t exponent_len,
@@ -812,7 +812,8 @@ class crypto_api : public context_aware_api {
         using std::string;
         using namespace std::string_literals;
 
-        const char* errPrefix = "[ERROR] verify_rsa_sha256_sig: ";
+        //const char* errPrefix = "[ERROR] verify_rsa_sha256_sig: ";
+        const string errPrefix {"[ERROR] verify_rsa_sha256_sig: "};
 
         try {
             if (message_len && signature_len && exponent_len && 
@@ -840,16 +841,16 @@ class crypto_api : public context_aware_api {
                     return cpp_int{"0x"s + pkcs1_encoding} == decoded;
                 }
                 else
-                    context.console_append(errPrefix, "Intended encoding message lenght too short", '\n');
+                    context.console_append(errPrefix + "Intended encoding message lenght too short\n");
             }
             else
-                context.console_append(errPrefix, "At least 1 param has an invalid length", '\n');
+                context.console_append(errPrefix + "At least 1 param has an invalid length\n");
         }
         catch(const std::exception& e) {
-            context.console_append(errPrefix, e.what(), '\n');
+            context.console_append(errPrefix + e.what() + "\n");
         }
         catch(...) {
-            context.console_append(errPrefix, "Unknown exception\n");
+            context.console_append(errPrefix + "Unknown exception\n");
         }
 
         return false;
