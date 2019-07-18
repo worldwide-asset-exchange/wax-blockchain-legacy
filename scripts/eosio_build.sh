@@ -43,6 +43,7 @@ function usage() {
   -c          Enable Code Coverage
   -d          Generate Doxygen
   -m          Build MongoDB dependencies
+  -r          Public root key for eosio account
    \\n" "$0" 1>&2
    exit 1
 }
@@ -95,6 +96,9 @@ if [ $# -ne 0 ]; then
          ;;
          h )
             usage
+         ;;
+         r )
+            PUBLIC_ROOT_KEY=-DEOSIO_ROOT_KEY=${OPTARG}
          ;;
          ? )
             echo "Invalid Option!" 1>&2
@@ -222,7 +226,7 @@ fi
 $ENABLE_DOXYGEN && LOCAL_CMAKE_FLAGS="-DBUILD_DOXYGEN='${DOXYGEN}' ${LOCAL_CMAKE_FLAGS}"
 $ENABLE_COVERAGE_TESTING && LOCAL_CMAKE_FLAGS="-DENABLE_COVERAGE_TESTING='${ENABLE_COVERAGE_TESTING}' ${LOCAL_CMAKE_FLAGS}"
 
-execute bash -c "$CMAKE -DCMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}' -DCORE_SYMBOL_NAME='${CORE_SYMBOL_NAME}' -DOPENSSL_ROOT_DIR='${OPENSSL_ROOT_DIR}' -DCMAKE_INSTALL_PREFIX='${EOSIO_INSTALL_DIR}' ${LOCAL_CMAKE_FLAGS} '${REPO_ROOT}'"
+execute bash -c "$CMAKE -DCMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}' -DCORE_SYMBOL_NAME='${CORE_SYMBOL_NAME}' -DOPENSSL_ROOT_DIR='${OPENSSL_ROOT_DIR}' -DCMAKE_INSTALL_PREFIX='${EOSIO_INSTALL_DIR}' ${PUBLIC_ROOT_KEY} ${LOCAL_CMAKE_FLAGS} '${REPO_ROOT}'"
 execute make -j$JOBS
 execute cd $REPO_ROOT 1>/dev/null
 
