@@ -39,18 +39,18 @@ function usage() {
   -s NAME     Core Symbol Name <1-7 characters> (default: SYS)
   -b DIR      Use pre-built boost in DIR
   -i DIR      Directory to use for installing dependencies & EOSIO (default: $HOME)
+  -r KEY      Public root key for eosio account
   -y          Noninteractive mode (answers yes to every prompt)
   -c          Enable Code Coverage
   -d          Generate Doxygen
   -m          Build MongoDB dependencies
-  -r          Public root key for eosio account
    \\n" "$0" 1>&2
    exit 1
 }
 
 TIME_BEGIN=$( date -u +%s )
 if [ $# -ne 0 ]; then
-   while getopts "o:s:b:i:ycdhmPf" opt; do
+   while getopts "o:s:b:i:r:ycdhmPf" opt; do
       case "${opt}" in
          o )
             options=( "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
