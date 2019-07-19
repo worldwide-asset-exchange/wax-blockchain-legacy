@@ -232,12 +232,12 @@ execute cd $REPO_ROOT 1>/dev/null
 
 TIME_END=$(( $(date -u +%s) - $TIME_BEGIN ))
 
-printf "\n\n${bldred}\t __      __  _____  ____  ___ \n"
+printf "\n\n${COLOR_RED}\t __      __  _____  ____  ___ \n"
 printf "\t/  \    /  \/  _  \ \   \/  / \n"
 printf "\t\   \/\/   /  /_\  \ \     / \n"
 printf "\t \        /    |    \/     \ \n"
 printf "\t  \__/\  /\____|__  /___/\  \ \n"
-printf "\t       \/         \/      \_/ \n${txtrst}"
+printf "\t       \/         \/      \_/ \n${COLOR_NC}"
 
 echo "${COLOR_GREEN}\nWAX has been successfully built. $(($TIME_END/3600)):$(($TIME_END%3600/60)):$(($TIME_END%60))"
 echo "${COLOR_GREEN}You can now install using: ${SCRIPT_DIR}/eosio_install.sh${COLOR_NC}"
