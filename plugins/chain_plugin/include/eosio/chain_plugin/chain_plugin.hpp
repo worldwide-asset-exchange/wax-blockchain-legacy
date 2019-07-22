@@ -104,8 +104,25 @@ public:
       //string                  recent_slots;
       //double                  participation_rate = 0;
       optional<string>        server_version_string;
+      optional<uint32_t>              fork_db_head_block_num;
+      optional<chain::block_id_type>  fork_db_head_block_id;
    };
    get_info_results get_info(const get_info_params&) const;
+
+   struct get_activated_protocol_features_params {
+      optional<uint32_t>  lower_bound;
+      optional<uint32_t>  upper_bound;
+      uint32_t            limit = 10;
+      bool                search_by_block_num = false;
+      bool                reverse = false;
+   };
+
+   struct get_activated_protocol_features_results {
+      fc::variants        activated_protocol_features;
+      optional<uint32_t>  more;
+   };
+
+   get_activated_protocol_features_results get_activated_protocol_features( const get_activated_protocol_features_params& params )const;
 
    struct producer_info {
       name                       producer_name;
@@ -583,6 +600,10 @@ public:
    using push_transactions_results = vector<push_transaction_results>;
    void push_transactions(const push_transactions_params& params, chain::plugin_interface::next_function<push_transactions_results> next);
 
+   using send_transaction_params = push_transaction_params;
+   using send_transaction_results = push_transaction_results;
+   void send_transaction(const send_transaction_params& params, chain::plugin_interface::next_function<send_transaction_results> next);
+
    friend resolver_factory<read_write>;
 };
 
@@ -608,8 +629,11 @@ public:
      static auto function() {
         return [](const input_type& v) {
             chain::key256_t k;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
             k[0] = ((uint128_t *)&v._hash)[0]; //0-127
             k[1] = ((uint128_t *)&v._hash)[1]; //127-256
+#pragma GCC diagnostic pop
             return k;
         };
      }
@@ -705,7 +729,9 @@ private:
 FC_REFLECT( eosio::chain_apis::permission, (perm_name)(parent)(required_auth) )
 FC_REFLECT(eosio::chain_apis::empty, )
 FC_REFLECT(eosio::chain_apis::read_only::get_info_results,
-(server_version)(chain_id)(head_block_num)(last_irreversible_block_num)(last_irreversible_block_id)(head_block_id)(head_block_time)(head_block_producer)(virtual_block_cpu_limit)(virtual_block_net_limit)(block_cpu_limit)(block_net_limit)(server_version_string) )
+(server_version)(chain_id)(head_block_num)(last_irreversible_block_num)(last_irreversible_block_id)(head_block_id)(head_block_time)(head_block_producer)(virtual_block_cpu_limit)(virtual_block_net_limit)(block_cpu_limit)(block_net_limit)(server_version_string)(fork_db_head_block_num)(fork_db_head_block_id) )
+FC_REFLECT(eosio::chain_apis::read_only::get_activated_protocol_features_params, (lower_bound)(upper_bound)(limit)(search_by_block_num)(reverse) )
+FC_REFLECT(eosio::chain_apis::read_only::get_activated_protocol_features_results, (activated_protocol_features)(more) )
 FC_REFLECT(eosio::chain_apis::read_only::get_block_params, (block_num_or_id))
 FC_REFLECT(eosio::chain_apis::read_only::get_block_header_state_params, (block_num_or_id))
 
@@ -735,6 +761,7 @@ FC_REFLECT( eosio::chain_apis::read_only::get_account_results,
             (account_name)(head_block_num)(head_block_time)(privileged)(last_code_update)(created)
             (core_liquid_balance)(ram_quota)(net_weight)(cpu_weight)(net_limit)(cpu_limit)(ram_usage)(permissions)
             (total_resources)(self_delegated_bandwidth)(refund_request)(voter_info) )
+// @swap code_hash
 FC_REFLECT( eosio::chain_apis::read_only::get_code_results, (account_name)(code_hash)(wast)(wasm)(abi) )
 FC_REFLECT( eosio::chain_apis::read_only::get_code_hash_results, (account_name)(code_hash) )
 FC_REFLECT( eosio::chain_apis::read_only::get_abi_results, (account_name)(abi) )

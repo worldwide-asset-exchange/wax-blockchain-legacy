@@ -37,7 +37,7 @@ namespace eosio { namespace chain { namespace wasm_injections {
 
       static void build_type_slots( Module& mod ) {
          // add the module types to the type_slots map
-         for ( int i=0; i < mod.types.size(); i++ ) {
+         for ( size_t i=0; i < mod.types.size(); i++ ) {
             std::vector<uint16_t> type_slot_list = { static_cast<uint16_t>(mod.types[i]->ret) };
             for ( auto param : mod.types[i]->parameters )
                type_slot_list.push_back( static_cast<uint16_t>(param) );
@@ -55,11 +55,6 @@ namespace eosio { namespace chain { namespace wasm_injections {
 
       // get the next available index that is greater than the last exported function
       static void get_next_indices( Module& module, int& next_function_index, int& next_actual_index ) {
-         int exports = 0;
-         for ( auto exp : module.exports )
-            if ( exp.kind == IR::ObjectKind::function )
-               exports++;
-
          next_function_index = module.functions.imports.size() + module.functions.defs.size() + registered_injected.size();
          next_actual_index = next_injected_index++;
       }
@@ -78,7 +73,7 @@ namespace eosio { namespace chain { namespace wasm_injections {
             injected_index_mapping.emplace( index, actual_index ); 
 
             // shift all exported functions by 1
-            for ( int i=0; i < module.exports.size(); i++ ) {
+            for ( size_t i=0; i < module.exports.size(); i++ ) {
                if ( module.exports[i].kind == IR::ObjectKind::function ) {
                   module.exports[i].index++;
                }

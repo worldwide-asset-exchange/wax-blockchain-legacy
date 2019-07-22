@@ -28,7 +28,7 @@ Options:
                               the http/https URL where keosd is running
   -r,--header                 pass specific HTTP header, repeat this option to pass multiple headers
   -n,--no-verify              don't verify peer certificate when using HTTPS
-  -v,--verbose                output verbose actions on error
+  -v,--verbose                output verbose errors and action output
 
 Subcommands:
   version                     Retrieve version information
@@ -84,6 +84,7 @@ Options:
 #include <fc/io/console.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/variant_object.hpp>
+#include <fc/static_variant.hpp>
 
 #include <eosio/chain/name.hpp>
 #include <eosio/chain/config.hpp>
@@ -133,6 +134,7 @@ using namespace eosio::client::http;
 using namespace eosio::client::localize;
 using namespace eosio::client::config;
 using namespace boost::filesystem;
+using auth_type = fc::static_variant<public_key_type, permission_level>;
 
 FC_DECLARE_EXCEPTION( explained_exception, 9000000, "explained exception, see error log" );
 FC_DECLARE_EXCEPTION( localized_exception, 10000000, "an error occured" );
@@ -180,6 +182,7 @@ bool   tx_print_json = false;
 bool   print_request = false;
 bool   print_response = false;
 bool   no_auto_keosd = false;
+bool   verbose = false;
 
 uint8_t  tx_max_cpu_usage = 0;
 uint32_t tx_max_net_usage = 0;
@@ -249,9 +252,9 @@ fc::variant call( const std::string& url,
    }
    catch(boost::system::system_error& e) {
       if(url == ::url)
-         std::cerr << localized("Failed to connect to nodeos at ${u}; is nodeos running?", ("u", url)) << std::endl;
+         std::cerr << localized("Failed to connect to ${n} at ${u}; is ${n} running?", ("n", node_executable_name)("u", url)) << std::endl;
       else if(url == ::wallet_url)
-         std::cerr << localized("Failed to connect to keosd at ${u}; is keosd running?", ("u", url)) << std::endl;
+         std::cerr << localized("Failed to connect to ${k} at ${u}; is ${k} running?", ("k", key_store_executable_name)("u", url)) << std::endl;
       throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, e.what())});
    }
 }
@@ -302,7 +305,7 @@ void sign_transaction(signed_transaction& trx, fc::variant& required_keys, const
    trx = signed_trx.as<signed_transaction>();
 }
 
-fc::variant push_transaction( signed_transaction& trx, int32_t extra_kcpu = 1000, packed_transaction::compression_type compression = packed_transaction::none ) {
+fc::variant push_transaction( signed_transaction& trx, packed_transaction::compression_type compression = packed_transaction::none ) {
    auto info = get_info();
 
    if (trx.signatures.size() == 0) { // #5445 can't change txn content if already signed
@@ -344,11 +347,11 @@ fc::variant push_transaction( signed_transaction& trx, int32_t extra_kcpu = 1000
    }
 }
 
-fc::variant push_actions(std::vector<chain::action>&& actions, int32_t extra_kcpu, packed_transaction::compression_type compression = packed_transaction::none ) {
+fc::variant push_actions(std::vector<chain::action>&& actions, packed_transaction::compression_type compression = packed_transaction::none ) {
    signed_transaction trx;
    trx.actions = std::forward<decltype(actions)>(actions);
 
-   return push_transaction(trx, extra_kcpu, compression);
+   return push_transaction(trx, compression);
 }
 
 void print_action( const fc::variant& at ) {
@@ -371,20 +374,22 @@ void print_action( const fc::variant& at ) {
    if( console.size() ) {
       std::stringstream ss(console);
       string line;
-      std::getline( ss, line );
-      cout << ">> " << line << "\n";
+      while( std::getline( ss, line ) ) {
+         cout << ">> " << line << "\n";
+         if( !verbose ) break;
+      }
    }
 }
 
 //resolver for ABI serializer to decode actions in proposed transaction in multisig contract
-auto abi_serializer_resolver = [](const name& account) -> optional<abi_serializer> {
-   static unordered_map<account_name, optional<abi_serializer> > abi_cache;
+auto abi_serializer_resolver = [](const name& account) -> fc::optional<abi_serializer> {
+   static unordered_map<account_name, fc::optional<abi_serializer> > abi_cache;
    auto it = abi_cache.find( account );
    if ( it == abi_cache.end() ) {
       auto result = call(get_abi_func, fc::mutable_variant_object("account_name", account));
       auto abi_results = result.as<eosio::chain_apis::read_only::get_abi_results>();
 
-      optional<abi_serializer> abis;
+      fc::optional<abi_serializer> abis;
       if( abi_results.abi.valid() ) {
          abis.emplace( *abi_results.abi, abi_serializer_max_time );
       } else {
@@ -438,9 +443,11 @@ bytes json_or_file_to_bin( const account_name& account, const action_name& actio
 
 void print_action_tree( const fc::variant& action ) {
    print_action( action );
-   const auto& inline_traces = action["inline_traces"].get_array();
-   for( const auto& t : inline_traces ) {
-      print_action_tree( t );
+   if( action.get_object().contains( "inline_traces" ) ) {
+      const auto& inline_traces = action["inline_traces"].get_array();
+      for( const auto& t : inline_traces ) {
+         print_action_tree( t );
+      }
    }
 }
 
@@ -448,12 +455,13 @@ void print_result( const fc::variant& result ) { try {
       if (result.is_object() && result.get_object().contains("processed")) {
          const auto& processed = result["processed"];
          const auto& transaction_id = processed["id"].as_string();
-         string status = processed["receipt"].is_object() ? processed["receipt"]["status"].as_string() : "failed";
+         string status = "failed";
          int64_t net = -1;
          int64_t cpu = -1;
          if( processed.get_object().contains( "receipt" )) {
             const auto& receipt = processed["receipt"];
             if( receipt.is_object()) {
+               status = receipt["status"].as_string();
                net = receipt["net_usage_words"].as_int64() * 8;
                cpu = receipt["cpu_usage_us"].as_int64();
             }
@@ -475,7 +483,7 @@ void print_result( const fc::variant& result ) { try {
          cerr << " us\n";
 
          if( status == "failed" ) {
-            auto soft_except = processed["except"].as<optional<fc::exception>>();
+            auto soft_except = processed["except"].as<fc::optional<fc::exception>>();
             if( soft_except ) {
                edump((soft_except->to_detail_string()));
             }
@@ -492,8 +500,8 @@ void print_result( const fc::variant& result ) { try {
 } FC_CAPTURE_AND_RETHROW( (result) ) }
 
 using std::cout;
-void send_actions(std::vector<chain::action>&& actions, int32_t extra_kcpu = 1000, packed_transaction::compression_type compression = packed_transaction::none ) {
-   auto result = push_actions( move(actions), extra_kcpu, compression);
+void send_actions(std::vector<chain::action>&& actions, packed_transaction::compression_type compression = packed_transaction::none ) {
+   auto result = push_actions( move(actions), compression);
 
    if( tx_print_json ) {
       cout << fc::json::to_pretty_string( result ) << endl;
@@ -502,8 +510,8 @@ void send_actions(std::vector<chain::action>&& actions, int32_t extra_kcpu = 100
    }
 }
 
-void send_transaction( signed_transaction& trx, int32_t extra_kcpu, packed_transaction::compression_type compression = packed_transaction::none  ) {
-   auto result = push_transaction(trx, extra_kcpu, compression);
+void send_transaction( signed_transaction& trx, packed_transaction::compression_type compression = packed_transaction::none  ) {
+   auto result = push_transaction(trx, compression);
 
    if( tx_print_json ) {
       cout << fc::json::to_pretty_string( result ) << endl;
@@ -512,14 +520,19 @@ void send_transaction( signed_transaction& trx, int32_t extra_kcpu, packed_trans
    }
 }
 
-chain::action create_newaccount(const name& creator, const name& newaccount, public_key_type owner, public_key_type active) {
+chain::permission_level to_permission_level(const std::string& s) {
+   auto at_pos = s.find('@');
+   return permission_level { s.substr(0, at_pos), s.substr(at_pos + 1) };
+}
+
+chain::action create_newaccount(const name& creator, const name& newaccount, auth_type owner, auth_type active) {
    return action {
       get_account_permissions(tx_permission, {creator,config::active_name}),
       eosio::chain::newaccount{
          .creator      = creator,
          .name         = newaccount,
-         .owner        = eosio::chain::authority{1, {{owner, 1}}, {}},
-         .active       = eosio::chain::authority{1, {{active, 1}}, {}}
+         .owner        = owner.contains<public_key_type>() ? authority(owner.get<public_key_type>()) : authority(owner.get<permission_level>()),
+         .active       = active.contains<public_key_type>() ? authority(active.get<public_key_type>()) : authority(active.get<permission_level>())
       }
    };
 }
@@ -675,7 +688,6 @@ asset to_asset( account_name code, const string& s ) {
    auto expected_symbol = it->second;
    if ( a.decimals() < expected_symbol.decimals() ) {
       auto factor = expected_symbol.precision() / a.precision();
-      auto a_old = a;
       a = asset( a.get_amount() * factor, expected_symbol );
    } else if ( a.decimals() > expected_symbol.decimals() ) {
       EOS_THROW(symbol_type_exception, "Too many decimal digits in ${a}, only ${d} supported", ("a", a)("d", expected_symbol.decimals()));
@@ -867,8 +879,8 @@ void try_local_port(uint32_t duration) {
    auto start_time = duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch() ).count();
    while ( !local_port_used()) {
       if (duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch()).count() - start_time > duration ) {
-         std::cerr << "Unable to connect to keosd, if keosd is running please kill the process and try again.\n";
-         throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, "Unable to connect to keosd")});
+         std::cerr << "Unable to connect to " << key_store_executable_name << ", if " << key_store_executable_name << " is running please kill the process and try again.\n";
+         throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, "Unable to connect to ${k}", ("k", key_store_executable_name))});
       }
    }
 }
@@ -926,7 +938,7 @@ void ensure_keosd_running(CLI::App* app) {
         }
     } else {
         std::cerr << "No wallet service listening on "
-                  << ". Cannot automatically start keosd because keosd was not found." << std::endl;
+                  << ". Cannot automatically start " << key_store_executable_name << " because " << key_store_executable_name << " was not found." << std::endl;
     }
 }
 
@@ -987,8 +999,8 @@ struct create_account_subcommand {
       );
       createAccount->add_option("creator", creator, localized("The name of the account creating the new account"))->required();
       createAccount->add_option("name", account_name, localized("The name of the new account"))->required();
-      createAccount->add_option("OwnerKey", owner_key_str, localized("The owner public key for the new account"))->required();
-      createAccount->add_option("ActiveKey", active_key_str, localized("The active public key for the new account"));
+      createAccount->add_option("OwnerKey", owner_key_str, localized("The owner public key or permission level for the new account"))->required();
+      createAccount->add_option("ActiveKey", active_key_str, localized("The active public key or permission level for the new account"));
 
       if (!simple) {
          createAccount->add_option("--stake-net", stake_net,
@@ -1008,16 +1020,31 @@ struct create_account_subcommand {
       add_standard_transaction_options(createAccount, "creator@active");
 
       createAccount->set_callback([this] {
-            if( !active_key_str.size() )
-               active_key_str = owner_key_str;
-            public_key_type owner_key, active_key;
-            try {
-               owner_key = public_key_type(owner_key_str);
-            } EOS_RETHROW_EXCEPTIONS(public_key_type_exception, "Invalid owner public key: ${public_key}", ("public_key", owner_key_str));
-            try {
-               active_key = public_key_type(active_key_str);
-            } EOS_RETHROW_EXCEPTIONS(public_key_type_exception, "Invalid active public key: ${public_key}", ("public_key", active_key_str));
-            auto create = create_newaccount(creator, account_name, owner_key, active_key);
+            auth_type owner, active;
+
+            if( owner_key_str.find('@') != string::npos ) {
+               try {
+                  owner = to_permission_level(owner_key_str);
+               } EOS_RETHROW_EXCEPTIONS( explained_exception, "Invalid owner permission level: ${permission}", ("permission", owner_key_str) )
+            } else {
+               try {
+                  owner = public_key_type(owner_key_str);
+               } EOS_RETHROW_EXCEPTIONS( public_key_type_exception, "Invalid owner public key: ${public_key}", ("public_key", owner_key_str) );
+            }
+
+            if( active_key_str.empty() ) {
+               active = owner;
+            } else if( active_key_str.find('@') != string::npos ) {
+               try {
+                  active = to_permission_level(active_key_str);
+               } EOS_RETHROW_EXCEPTIONS( explained_exception, "Invalid active permission level: ${permission}", ("permission", active_key_str) )
+            } else {
+               try {
+                  active = public_key_type(active_key_str);
+               } EOS_RETHROW_EXCEPTIONS( public_key_type_exception, "Invalid active public key: ${public_key}", ("public_key", active_key_str) );
+            }
+
+            auto create = create_newaccount(creator, account_name, owner, active);
             if (!simple) {
                EOSC_ASSERT( buy_ram_eos.size() || buy_ram_bytes_in_kbytes || buy_ram_bytes, "ERROR: One of --buy-ram, --buy-ram-kbytes or --buy-ram-bytes should have non-zero value" );
                EOSC_ASSERT( !buy_ram_bytes_in_kbytes || !buy_ram_bytes, "ERROR: --buy-ram-kbytes and --buy-ram-bytes cannot be set at the same time" );
@@ -1285,9 +1312,50 @@ struct get_transaction_id_subcommand {
 
       get_transaction_id->set_callback([&] {
          try {
-            auto trx_var = json_from_file_or_string(trx_to_check);
-            auto trx = trx_var.as<transaction>();
-            std::cout << string(trx.id()) << std::endl;
+            fc::variant trx_var = json_from_file_or_string(trx_to_check);
+            if( trx_var.is_object() ) {
+               fc::variant_object& vo = trx_var.get_object();
+               // if actions.data & actions.hex_data provided, use the hex_data since only currently support unexploded data
+               if( vo.contains("actions") ) {
+                  if( vo["actions"].is_array() ) {
+                     fc::mutable_variant_object mvo = vo;
+                     fc::variants& action_variants = mvo["actions"].get_array();
+                     for( auto& action_v : action_variants ) {
+                        if( !action_v.is_object() ) {
+                           std::cerr << "Empty 'action' in transaction" << endl;
+                           return;
+                        }
+                        fc::variant_object& action_vo = action_v.get_object();
+                        if( action_vo.contains( "data" ) && action_vo.contains( "hex_data" ) ) {
+                           fc::mutable_variant_object maction_vo = action_vo;
+                           maction_vo["data"] = maction_vo["hex_data"];
+                           action_vo = maction_vo;
+                           vo = mvo;
+                        } else if( action_vo.contains( "data" ) ) {
+                           if( !action_vo["data"].is_string() ) {
+                              std::cerr << "get transaction_id only supports un-exploded 'data' (hex form)" << std::endl;
+                              return;
+                           }
+                        }
+                     }
+                  } else {
+                     std::cerr << "transaction json 'actions' is not an array" << std::endl;
+                     return;
+                  }
+               } else {
+                  std::cerr << "transaction json does not include 'actions'" << std::endl;
+                  return;
+               }
+               auto trx = trx_var.as<transaction>();
+               transaction_id_type id = trx.id();
+               if( id == transaction().id() ) {
+                  std::cerr << "file/string does not represent a transaction" << std::endl;
+               } else {
+                  std::cout << string( id ) << std::endl;
+               }
+            } else {
+               std::cerr << "file/string does not represent a transaction" << std::endl;
+            }
          } EOS_RETHROW_EXCEPTIONS(transaction_type_exception, "Fail to parse transaction JSON '${data}'", ("data",trx_to_check))
       });
    }
@@ -1583,6 +1651,405 @@ struct canceldelay_subcommand {
    }
 };
 
+struct deposit_subcommand {
+   string owner_str;
+   string amount_str;
+   const name act_name{ N(deposit) };
+
+   deposit_subcommand(CLI::App* actionRoot) {
+      auto deposit = actionRoot->add_subcommand("deposit", localized("Deposit into owner's REX fund by transfering from owner's liquid token balance"));
+      deposit->add_option("owner",  owner_str,  localized("Account which owns the REX fund"))->required();
+      deposit->add_option("amount", amount_str, localized("Amount to be deposited into REX fund"))->required();
+      add_standard_transaction_options(deposit, "owner@active");
+      deposit->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",  owner_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct withdraw_subcommand {
+   string owner_str;
+   string amount_str;
+   const name act_name{ N(withdraw) };
+
+   withdraw_subcommand(CLI::App* actionRoot) {
+      auto withdraw = actionRoot->add_subcommand("withdraw", localized("Withdraw from owner's REX fund by transfering to owner's liquid token balance"));
+      withdraw->add_option("owner",  owner_str,  localized("Account which owns the REX fund"))->required();
+      withdraw->add_option("amount", amount_str, localized("Amount to be withdrawn from REX fund"))->required();
+      add_standard_transaction_options(withdraw, "owner@active");
+      withdraw->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",  owner_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct buyrex_subcommand {
+   string from_str;
+   string amount_str;
+   const name act_name{ N(buyrex) };
+
+   buyrex_subcommand(CLI::App* actionRoot) {
+      auto buyrex = actionRoot->add_subcommand("buyrex", localized("Buy REX using tokens in owner's REX fund"));
+      buyrex->add_option("from",   from_str,   localized("Account buying REX tokens"))->required();
+      buyrex->add_option("amount", amount_str, localized("Amount to be taken from REX fund and used in buying REX"))->required();
+      add_standard_transaction_options(buyrex, "from@active");
+      buyrex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",   from_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct lendrex_subcommand {
+   string from_str;
+   string amount_str;
+   const name act_name1{ N(deposit) };
+   const name act_name2{ N(buyrex) };
+
+   lendrex_subcommand(CLI::App* actionRoot) {
+      auto lendrex = actionRoot->add_subcommand("lendrex", localized("Deposit tokens to REX fund and use the tokens to buy REX"));
+      lendrex->add_option("from",   from_str,   localized("Account buying REX tokens"))->required();
+      lendrex->add_option("amount", amount_str, localized("Amount of liquid tokens to be used in buying REX"))->required();
+      add_standard_transaction_options(lendrex, "from@active");
+      lendrex->set_callback([this] {
+         fc::variant act_payload1 = fc::mutable_variant_object()
+            ("owner",  from_str)
+            ("amount", amount_str);
+         fc::variant act_payload2 = fc::mutable_variant_object()
+            ("from",   from_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name1, act_payload1),
+                       create_action(accountPermissions, config::system_account_name, act_name2, act_payload2)});
+      });
+   }
+};
+
+struct unstaketorex_subcommand {
+   string owner_str;
+   string receiver_str;
+   string from_net_str;
+   string from_cpu_str;
+   const name act_name{ N(unstaketorex) };
+
+   unstaketorex_subcommand(CLI::App* actionRoot) {
+      auto unstaketorex = actionRoot->add_subcommand("unstaketorex", localized("Buy REX using staked tokens"));
+      unstaketorex->add_option("owner",    owner_str,    localized("Account buying REX tokens"))->required();
+      unstaketorex->add_option("receiver", receiver_str, localized("Account that tokens have been staked to"))->required();
+      unstaketorex->add_option("from_net", from_net_str, localized("Amount to be unstaked from Net resources and used in REX purchase"))->required();
+      unstaketorex->add_option("from_cpu", from_cpu_str, localized("Amount to be unstaked from CPU resources and used in REX purchase"))->required();
+      add_standard_transaction_options(unstaketorex, "owner@active");
+      unstaketorex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",    owner_str)
+            ("receiver", receiver_str)
+            ("from_net", from_net_str)
+            ("from_cpu", from_cpu_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct sellrex_subcommand {
+   string from_str;
+   string rex_str;
+   const name act_name{ N(sellrex) };
+
+   sellrex_subcommand(CLI::App* actionRoot) {
+      auto sellrex = actionRoot->add_subcommand("sellrex", localized("Sell REX tokens"));
+      sellrex->add_option("from", from_str, localized("Account selling REX tokens"))->required();
+      sellrex->add_option("rex",  rex_str,  localized("Amount of REX tokens to be sold"))->required();
+      add_standard_transaction_options(sellrex, "from@active");
+      sellrex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from", from_str)
+            ("rex",  rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct cancelrexorder_subcommand {
+   string owner_str;
+   const name act_name{ N(cnclrexorder) };
+
+   cancelrexorder_subcommand(CLI::App* actionRoot) {
+      auto cancelrexorder = actionRoot->add_subcommand("cancelrexorder", localized("Cancel queued REX sell order if one exists"));
+      cancelrexorder->add_option("owner", owner_str, localized("Owner account of sell order"))->required();
+      add_standard_transaction_options(cancelrexorder, "owner@active");
+      cancelrexorder->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rentcpu_subcommand {
+   string from_str;
+   string receiver_str;
+   string loan_payment_str;
+   string loan_fund_str;
+   const name act_name{ N(rentcpu) };
+
+   rentcpu_subcommand(CLI::App* actionRoot) {
+      auto rentcpu = actionRoot->add_subcommand("rentcpu", localized("Rent CPU bandwidth for 30 days"));
+      rentcpu->add_option("from",         from_str,         localized("Account paying rent fees"))->required();
+      rentcpu->add_option("receiver",     receiver_str,     localized("Account to whom rented CPU bandwidth is staked"))->required();
+      rentcpu->add_option("loan_payment", loan_payment_str, localized("Loan fee to be paid, used to calculate amount of rented bandwidth"))->required();
+      rentcpu->add_option("loan_fund",    loan_fund_str,    localized("Loan fund to be used in automatic renewal, can be 0 tokens"))->required();
+      add_standard_transaction_options(rentcpu, "from@active");
+      rentcpu->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",         from_str)
+            ("receiver",     receiver_str)
+            ("loan_payment", loan_payment_str)
+            ("loan_fund",    loan_fund_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rentnet_subcommand {
+   string from_str;
+   string receiver_str;
+   string loan_payment_str;
+   string loan_fund_str;
+   const name act_name{ N(rentnet) };
+
+   rentnet_subcommand(CLI::App* actionRoot) {
+      auto rentnet = actionRoot->add_subcommand("rentnet", localized("Rent Network bandwidth for 30 days"));
+      rentnet->add_option("from",         from_str,         localized("Account paying rent fees"))->required();
+      rentnet->add_option("receiver",     receiver_str,     localized("Account to whom rented Network bandwidth is staked"))->required();
+      rentnet->add_option("loan_payment", loan_payment_str, localized("Loan fee to be paid, used to calculate amount of rented bandwidth"))->required();
+      rentnet->add_option("loan_fund",    loan_fund_str,    localized("Loan fund to be used in automatic renewal, can be 0 tokens"))->required();
+      add_standard_transaction_options(rentnet, "from@active");
+      rentnet->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",         from_str)
+            ("receiver",     receiver_str)
+            ("loan_payment", loan_payment_str)
+            ("loan_fund",    loan_fund_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct fundcpuloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string payment_str;
+   const name act_name{ N(fundcpuloan) };
+
+   fundcpuloan_subcommand(CLI::App* actionRoot) {
+      auto fundcpuloan = actionRoot->add_subcommand("fundcpuloan", localized("Deposit into a CPU loan fund"));
+      fundcpuloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      fundcpuloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      fundcpuloan->add_option("payment",  payment_str,  localized("Amount to be deposited"))->required();
+      add_standard_transaction_options(fundcpuloan, "from@active");
+      fundcpuloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("payment",  payment_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct fundnetloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string payment_str;
+   const name act_name{ N(fundnetloan) };
+
+   fundnetloan_subcommand(CLI::App* actionRoot) {
+      auto fundnetloan = actionRoot->add_subcommand("fundnetloan", localized("Deposit into a Network loan fund"));
+      fundnetloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      fundnetloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      fundnetloan->add_option("payment",  payment_str,  localized("Amount to be deposited"))->required();
+      add_standard_transaction_options(fundnetloan, "from@active");
+      fundnetloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("payment",  payment_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct defcpuloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string amount_str;
+   const name act_name{ N(defcpuloan) };
+
+   defcpuloan_subcommand(CLI::App* actionRoot) {
+      auto defcpuloan = actionRoot->add_subcommand("defundcpuloan", localized("Withdraw from a CPU loan fund"));
+      defcpuloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      defcpuloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      defcpuloan->add_option("amount",   amount_str,  localized("Amount to be withdrawn"))->required();
+      add_standard_transaction_options(defcpuloan, "from@active");
+      defcpuloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("amount",   amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct defnetloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string amount_str;
+   const name act_name{ N(defnetloan) };
+
+   defnetloan_subcommand(CLI::App* actionRoot) {
+      auto defnetloan = actionRoot->add_subcommand("defundnetloan", localized("Withdraw from a Network loan fund"));
+      defnetloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      defnetloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      defnetloan->add_option("amount",   amount_str,  localized("Amount to be withdrawn"))->required();
+      add_standard_transaction_options(defnetloan, "from@active");
+      defnetloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("amount",   amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct mvtosavings_subcommand {
+   string owner_str;
+   string rex_str;
+   const name act_name{ N(mvtosavings) };
+
+   mvtosavings_subcommand(CLI::App* actionRoot) {
+      auto mvtosavings = actionRoot->add_subcommand("mvtosavings", localized("Move REX tokens to savings bucket"));
+      mvtosavings->add_option("owner", owner_str, localized("REX owner"))->required();
+      mvtosavings->add_option("rex",   rex_str,   localized("Amount of REX to be moved to savings bucket"))->required();
+      add_standard_transaction_options(mvtosavings, "owner@active");
+      mvtosavings->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner", owner_str)
+            ("rex",   rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct mvfrsavings_subcommand {
+   string owner_str;
+   string rex_str;
+   const name act_name{ N(mvfrsavings) };
+
+   mvfrsavings_subcommand(CLI::App* actionRoot) {
+      auto mvfrsavings = actionRoot->add_subcommand("mvfromsavings", localized("Move REX tokens out of savings bucket"));
+      mvfrsavings->add_option("owner", owner_str, localized("REX owner"))->required();
+      mvfrsavings->add_option("rex",   rex_str,   localized("Amount of REX to be moved out of savings bucket"))->required();
+      add_standard_transaction_options(mvfrsavings, "owner@active");
+      mvfrsavings->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner", owner_str)
+            ("rex",   rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct updaterex_subcommand {
+   string owner_str;
+   const name act_name{ N(updaterex) };
+
+   updaterex_subcommand(CLI::App* actionRoot) {
+      auto updaterex = actionRoot->add_subcommand("updaterex", localized("Update REX owner vote stake and vote weight"));
+      updaterex->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(updaterex, "owner@active");
+      updaterex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct consolidate_subcommand {
+   string owner_str;
+   const name act_name{ N(consolidate) };
+
+   consolidate_subcommand(CLI::App* actionRoot) {
+      auto consolidate = actionRoot->add_subcommand("consolidate", localized("Consolidate REX maturity buckets into one that matures in 4 days"));
+      consolidate->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(consolidate, "owner@active");
+      consolidate->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rexexec_subcommand {
+   string user_str;
+   string max_str;
+   const name act_name{ N(rexexec) };
+
+   rexexec_subcommand(CLI::App* actionRoot) {
+      auto rexexec = actionRoot->add_subcommand("rexexec", localized("Perform REX maintenance by processing expired loans and unfilled sell orders"));
+      rexexec->add_option("user", user_str, localized("User executing the action"))->required();
+      rexexec->add_option("max",  max_str,  localized("Maximum number of CPU loans, Network loans, and sell orders to be processed"))->required();
+      add_standard_transaction_options(rexexec, "user@active");
+      rexexec->set_callback([this] {
+            fc::variant act_payload = fc::mutable_variant_object()
+               ("user", user_str)
+               ("max",  max_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {user_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct closerex_subcommand {
+   string owner_str;
+   const name act_name{ N(closerex) };
+
+   closerex_subcommand(CLI::App* actionRoot) {
+      auto closerex = actionRoot->add_subcommand("closerex", localized("Delete unused REX-related user table entries"));
+      closerex->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(closerex, "owner@active");
+      closerex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
 void get_account( const string& accountName, const string& coresym, bool json_format ) {
    fc::variant json;
    if (coresym.empty()) {
@@ -1828,7 +2295,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
             auto& prods = obj["producers"].get_array();
             std::cout << "producers:";
             if ( !prods.empty() ) {
-               for ( int i = 0; i < prods.size(); ++i ) {
+               for ( size_t i = 0; i < prods.size(); ++i ) {
                   if ( i%3 == 0 ) {
                      std::cout << std::endl << indent;
                   }
@@ -1867,21 +2334,20 @@ int main( int argc, char** argv ) {
 
    CLI::App app{"Command Line Interface to EOSIO Client"};
    app.require_subcommand();
-   app.add_option( "-H,--host", obsoleted_option_host_port, localized("the host where nodeos is running") )->group("hidden");
-   app.add_option( "-p,--port", obsoleted_option_host_port, localized("the port where nodeos is running") )->group("hidden");
-   app.add_option( "--wallet-host", obsoleted_option_host_port, localized("the host where keosd is running") )->group("hidden");
-   app.add_option( "--wallet-port", obsoleted_option_host_port, localized("the port where keosd is running") )->group("hidden");
+   app.add_option( "-H,--host", obsoleted_option_host_port, localized("the host where ${n} is running", ("n", node_executable_name)) )->group("hidden");
+   app.add_option( "-p,--port", obsoleted_option_host_port, localized("the port where ${n} is running", ("n", node_executable_name)) )->group("hidden");
+   app.add_option( "--wallet-host", obsoleted_option_host_port, localized("the host where ${k} is running", ("k", key_store_executable_name)) )->group("hidden");
+   app.add_option( "--wallet-port", obsoleted_option_host_port, localized("the port where ${k} is running", ("k", key_store_executable_name)) )->group("hidden");
 
-   app.add_option( "-u,--url", url, localized("the http/https URL where nodeos is running"), true );
-   app.add_option( "--wallet-url", wallet_url, localized("the http/https URL where keosd is running"), true );
+   app.add_option( "-u,--url", url, localized("the http/https URL where ${n} is running", ("n", node_executable_name)), true );
+   app.add_option( "--wallet-url", wallet_url, localized("the http/https URL where ${k} is running", ("k", key_store_executable_name)), true );
 
    app.add_option( "-r,--header", header_opt_callback, localized("pass specific HTTP header; repeat this option to pass multiple headers"));
    app.add_flag( "-n,--no-verify", no_verify, localized("don't verify peer certificate when using HTTPS"));
-   app.add_flag( "--no-auto-keosd", no_auto_keosd, localized("don't automatically launch a keosd if one is not currently running"));
+   app.add_flag( "--no-auto-" + string(key_store_executable_name), no_auto_keosd, localized("don't automatically launch a ${k} if one is not currently running", ("k", key_store_executable_name)));
    app.set_callback([&app]{ ensure_keosd_running(&app);});
 
-   bool verbose_errors = false;
-   app.add_flag( "-v,--verbose", verbose_errors, localized("output verbose actions on error"));
+   app.add_flag( "-v,--verbose", verbose, localized("output verbose errors and action console output"));
    app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));
    app.add_flag("--print-response", print_response, localized("print HTTP response to STDERR"));
 
@@ -1935,7 +2401,7 @@ int main( int argc, char** argv ) {
    bool pack_action_data_flag = false;
    auto pack_transaction = convert->add_subcommand("pack_transaction", localized("From plain signed json to packed form"));
    pack_transaction->add_option("transaction", plain_signed_transaction_json, localized("The plain signed json (string)"))->required();
-   pack_transaction->add_flag("--pack-action-data", pack_action_data_flag, localized("Pack all action data within transaction, needs interaction with nodeos"));
+   pack_transaction->add_flag("--pack-action-data", pack_action_data_flag, localized("Pack all action data within transaction, needs interaction with ${n}", ("n", node_executable_name)));
    pack_transaction->set_callback([&] {
       fc::variant trx_var;
       try {
@@ -1958,7 +2424,7 @@ int main( int argc, char** argv ) {
    bool unpack_action_data_flag = false;
    auto unpack_transaction = convert->add_subcommand("unpack_transaction", localized("From packed to plain signed json form"));
    unpack_transaction->add_option("transaction", packed_transaction_json, localized("The packed transaction json (string containing packed_trx and optionally compression fields)"))->required();
-   unpack_transaction->add_flag("--unpack-action-data", unpack_action_data_flag, localized("Unpack all action data within transaction, needs interaction with nodeos"));
+   unpack_transaction->add_flag("--unpack-action-data", unpack_action_data_flag, localized("Unpack all action data within transaction, needs interaction with ${n}", ("n", node_executable_name)));
    unpack_transaction->set_callback([&] {
       fc::variant packed_trx_var;
       packed_transaction packed_trx;
@@ -2078,7 +2544,7 @@ int main( int argc, char** argv ) {
          code_hash = old_result["code_hash"].as_string();
          if(code_as_wasm) {
             wasm = old_result["wasm"].as_string();
-            std::cout << localized("Warning: communicating to older nodeos which returns malformed binary wasm") << std::endl;
+            std::cout << localized("Warning: communicating to older ${n} which returns malformed binary wasm", ("n", node_executable_name)) << std::endl;
          }
          else
             wast = old_result["wast"].as_string();
@@ -2285,7 +2751,7 @@ int main( int argc, char** argv ) {
    getActions->add_option("pos", pos_seq, localized("sequence number of action for this account, -1 for last"));
    getActions->add_option("offset", offset, localized("get actions [pos,pos+offset] for positive offset or [pos-offset,pos) for negative offset"));
    getActions->add_flag("--json,-j", printjson, localized("print full json"));
-   getActions->add_flag("--full", fullact, localized("don't truncate action json"));
+   getActions->add_flag("--full", fullact, localized("don't truncate action output"));
    getActions->add_flag("--pretty", prettyact, localized("pretty print full action json "));
    getActions->add_flag("--console", printconsole, localized("print console output generated by action "));
    getActions->set_callback([&] {
@@ -2354,8 +2820,10 @@ int main( int argc, char** argv ) {
                     stringstream out;
                     std::stringstream ss(console);
                     string line;
-                    std::getline( ss, line );
-                    out << ">> " << line << "\n";
+                    while( std::getline( ss, line ) ) {
+                       out << ">> " << line << "\n";
+                       if( !fullact ) break;
+                    }
                     cerr << out.str(); //ilog( "\r${m}                                   ", ("m",out.str()) );
                  }
               }
@@ -2506,7 +2974,7 @@ int main( int argc, char** argv ) {
          actions.emplace_back( create_setcode(account, code_bytes ) );
          if ( shouldSend ) {
             std::cerr << localized("Setting Code...") << std::endl;
-            send_actions(std::move(actions), 10000, packed_transaction::zlib);
+            send_actions(std::move(actions), packed_transaction::zlib);
          }
       } else {
          std::cerr << localized("Skipping set code because the new code is the same as the existing code") << std::endl;
@@ -2554,7 +3022,7 @@ int main( int argc, char** argv ) {
          } EOS_RETHROW_EXCEPTIONS(abi_type_exception,  "Fail to parse ABI JSON")
          if ( shouldSend ) {
             std::cerr << localized("Setting ABI...") << std::endl;
-            send_actions(std::move(actions), 10000, packed_transaction::zlib);
+            send_actions(std::move(actions), packed_transaction::zlib);
          }
       } else {
          std::cerr << localized("Skipping set abi because the new abi is the same as the existing abi") << std::endl;
@@ -2571,7 +3039,7 @@ int main( int argc, char** argv ) {
       set_abi_callback();
       if (actions.size()) {
          std::cerr << localized("Publishing contract...") << std::endl;
-         send_actions(std::move(actions), 10000, packed_transaction::zlib);
+         send_actions(std::move(actions), packed_transaction::zlib);
       } else {
          std::cout << "no transaction is sent" << std::endl;
       }
@@ -2805,7 +3273,7 @@ int main( int argc, char** argv ) {
       std::cout << fc::json::to_pretty_string(v) << std::endl;
    });
 
-   auto stopKeosd = wallet->add_subcommand("stop", localized("Stop keosd (doesn't work with nodeos)."), false);
+   auto stopKeosd = wallet->add_subcommand("stop", localized("Stop ${k}.", ("k", key_store_executable_name)), false);
    stopKeosd->set_callback([] {
       const auto& v = call(wallet_url, keosd_stop);
       if ( !v.is_object() || v.get_object().size() != 0 ) { //on success keosd responds with empty object
@@ -2834,7 +3302,7 @@ int main( int argc, char** argv ) {
       fc::optional<chain_id_type> chain_id;
 
       if( str_chain_id.size() == 0 ) {
-         ilog( "grabbing chain_id from nodeos" );
+         ilog( "grabbing chain_id from ${n}", ("n", node_executable_name) );
          auto info = get_info();
          chain_id = info.chain_id;
       } else {
@@ -3125,7 +3593,7 @@ int main( int argc, char** argv ) {
             for( const auto& ra : approvals_object["requested_approvals"].get_array() ) {
                const auto& ra_obj = ra.get_object();
                auto pl = ra["level"].as<permission_level>();
-               auto res = all_approvals.emplace( pl, std::make_pair(ra["time"].as<fc::time_point>(), approval_status::unapproved) );
+               all_approvals.emplace( pl, std::make_pair(ra["time"].as<fc::time_point>(), approval_status::unapproved) );
             }
 
             for( const auto& pa : approvals_object["provided_approvals"].get_array() ) {
@@ -3156,7 +3624,7 @@ int main( int argc, char** argv ) {
 
             for( const auto& ra : approvals_object["requested_approvals"].get_array() ) {
                auto pl = ra.as<permission_level>();
-               auto res = all_approvals.emplace( pl, std::make_pair(fc::time_point{}, approval_status::unapproved) );
+               all_approvals.emplace( pl, std::make_pair(fc::time_point{}, approval_status::unapproved) );
             }
 
             for( const auto& pa : approvals_object["provided_approvals"].get_array() ) {
@@ -3420,7 +3888,7 @@ int main( int argc, char** argv ) {
    auto bidname = bidname_subcommand(system);
    auto bidnameinfo = bidname_info_subcommand(system);
 
-   auto biyram = buyram_subcommand(system);
+   auto buyram = buyram_subcommand(system);
    auto sellram = sellram_subcommand(system);
 
    auto claimRewards = claimrewards_subcommand(system);
@@ -3430,6 +3898,29 @@ int main( int argc, char** argv ) {
 
    auto cancelDelay = canceldelay_subcommand(system);
 
+   auto rex = system->add_subcommand("rex", localized("Actions related to REX (the resource exchange)"));
+   rex->require_subcommand();
+   auto deposit        = deposit_subcommand(rex);
+   auto withdraw       = withdraw_subcommand(rex);
+   auto buyrex         = buyrex_subcommand(rex);
+   auto lendrex        = lendrex_subcommand(rex);
+   auto unstaketorex   = unstaketorex_subcommand(rex);
+   auto sellrex        = sellrex_subcommand(rex);
+   auto cancelrexorder = cancelrexorder_subcommand(rex);
+   auto mvtosavings    = mvtosavings_subcommand(rex);
+   auto mvfromsavings  = mvfrsavings_subcommand(rex);
+   auto rentcpu        = rentcpu_subcommand(rex);
+   auto rentnet        = rentnet_subcommand(rex);
+   auto fundcpuloan    = fundcpuloan_subcommand(rex);
+   auto fundnetloan    = fundnetloan_subcommand(rex);
+   auto defcpuloan     = defcpuloan_subcommand(rex);
+   auto defnetloan     = defnetloan_subcommand(rex);
+   auto consolidate    = consolidate_subcommand(rex);
+   auto updaterex      = updaterex_subcommand(rex);
+   auto rexexec        = rexexec_subcommand(rex);
+   auto closerex       = closerex_subcommand(rex);
+
+
    try {
        app.parse(argc, argv);
    } catch (const CLI::ParseError &e) {
@@ -3437,16 +3928,16 @@ int main( int argc, char** argv ) {
    } catch (const explained_exception& e) {
       return 1;
    } catch (connection_exception& e) {
-      if (verbose_errors) {
+      if (verbose) {
          elog("connect error: ${e}", ("e", e.to_detail_string()));
       }
       return 1;
    } catch (const fc::exception& e) {
       // attempt to extract the error code if one is present
-      if (!print_recognized_errors(e, verbose_errors)) {
+      if (!print_recognized_errors(e, verbose)) {
          // Error is not recognized
-         if (!print_help_text(e) || verbose_errors) {
-            elog("Failed with error: ${e}", ("e", verbose_errors ? e.to_detail_string() : e.to_string()));
+         if (!print_help_text(e) || verbose) {
+            elog("Failed with error: ${e}", ("e", verbose ? e.to_detail_string() : e.to_string()));
          }
       }
       return 1;
