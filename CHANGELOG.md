@@ -1,6 +1,17 @@
 # Changelog
 
-## Pending (wax-1.8.1-1.0.0-rc2)
+## Pending (wax-1.8.1-1.0.0)
+
+BREAKING CHANGES:
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+- [KEW-1434] Fix/update sample/hello-world
+
+## wax-1.8.1-1.0.0-rc2
 
 BREAKING CHANGES:
 
