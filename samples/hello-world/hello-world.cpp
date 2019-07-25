@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <eosiolib/eosio.hpp>
+#include <eosio/eosio.hpp>
 
 CONTRACT helloworld: public eosio::contract {
 public:
