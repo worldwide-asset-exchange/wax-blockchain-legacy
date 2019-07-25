@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 CONTRACT_NAME = helloworld
-BLOCKCHAIN_DEV_VERSION = wax-1.6.1-1.1.1
+BLOCKCHAIN_DEV_VERSION = wax-1.8.1-1.0.0-rc3
 NODEOS_URL ?= https://chain.wax.io/
 CONTAINER = ${CONTRACT_NAME}-sample
 WORK_DIR = /opt/${CONTRACT_NAME}
@@ -30,24 +30,28 @@ AS_LOCAL = --user $(shell id -u):$(shell id -g)
 CLEOS=/usr/local/eosio/bin/cleos
 CLEOSN=${CLEOS} -u ${NODEOS_URL}
 
-.PHONY: build
+.PHONY: build test clean deploy \
+        create_key create_account \
+        dev-docker-stop dev-docker-start
+
+
 build: dev-docker-stop
 	@mkdir -p build
-	docker run ${AS_LOCAL} ${DOCKER_COMMON} bash -c "cd build && cmake .. && make"
+	docker run ${AS_LOCAL} ${DOCKER_COMMON} bash -c "cd build && cmake .. && make -j $$(nproc)"
+
 
 # This requires an already deployed contract
-.PHONY: test
 test: dev-docker-stop
 ifndef CONTRACT_ACCOUNT
 	$(error CONTRACT_ACCOUNT is undefined)
 endif
 	docker run ${DOCKER_COMMON} bash -c "${CLEOSN} push action ${CONTRACT_ACCOUNT} greet '[]' -p ${CONTRACT_ACCOUNT}@active"
 
-.PHONY: clean
+
 clean:
 	-rm -rf build
 
-.PHONY: deploy
+
 deploy: dev-docker-stop
 ifndef CONTRACT_ACCOUNT
 	$(error CONTRACT_ACCOUNT is undefined)
@@ -61,11 +65,11 @@ endif
         ${CLEOS} wallet import -n ${CONTRACT_NAME} --private-key ${CONTRACT_PRIVATE_KEY} && \
         ${CLEOSN} set contract ${CONTRACT_ACCOUNT} ${WORK_DIR}/build ${CONTRACT_NAME}.wasm ${CONTRACT_NAME}.abi"
 
-.PHONY: create-key
+
 create-key: dev-docker-stop
 	@docker run ${DOCKER_COMMON} bash -c "${CLEOS} create key --to-console"
 
-.PHONY: create-account
+
 create-account: dev-docker-stop
 ifndef WAX_ACCOUNT
 	$(error WAX_ACCOUNT is undefined)
@@ -86,11 +90,11 @@ endif
         ${CLEOSN} system newaccount ${WAX_ACCOUNT} ${CONTRACT_ACCOUNT} ${CONTRACT_PUBLIC_KEY} \
                      --stake-net '0.50000000 WAX' --stake-cpu '0.50000000 WAX' --buy-ram-kbytes 32"
 
-.PHONY: dev-docker-stop
+
 dev-docker-stop:
 	@-docker rm -f ${CONTAINER}
 
+
 # Useful for interactive docker work
-.PHONY: dev-docker-stop
 dev-docker-start: dev-docker-stop
-	docker run -it ${DOCKER_COMMON} bash
+	docker run -it ${AS_LOCAL} ${DOCKER_COMMON} bash
