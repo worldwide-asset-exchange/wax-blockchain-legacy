@@ -804,16 +804,15 @@ class crypto_api : public context_aware_api {
        *
        * signature, exponent and modulus must be hexadecimal strings 
        */
-      public: int verify_rsa_sha256_sig(
-                    array_ptr<char> message, size_t message_len,
-                    array_ptr<char> signature, size_t signature_len,
-                    array_ptr<char> exponent, size_t exponent_len,
-                    array_ptr<char> modulus, size_t modulus_len) {
+      int verify_rsa_sha256_sig(array_ptr<char> message,   size_t message_len,
+                                array_ptr<char> signature, size_t signature_len,
+                                array_ptr<char> exponent,  size_t exponent_len,
+                                array_ptr<char> modulus,   size_t modulus_len)
+      {
         using std::string;
         using namespace std::string_literals;
 
-        //const char* errPrefix = "[ERROR] verify_rsa_sha256_sig: ";
-        const string errPrefix {"[ERROR] verify_rsa_sha256_sig: "};
+        const auto errPrefix = "[ERROR] verify_rsa_sha256_sig: "s;
 
         try {
             if (message_len && signature_len && exponent_len && 
