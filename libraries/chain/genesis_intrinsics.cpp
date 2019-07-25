@@ -131,6 +131,7 @@ const std::vector<const char*> genesis_intrinsics = {
    "sha256",
    "sha512",
    "ripemd160",
+   "verify_rsa_sha256_sig",
    "check_transaction_authorization",
    "check_permission_authorization",
    "get_permission_last_used",
