@@ -1,6 +1,6 @@
 # Changelog
 
-## Pending (wax-1.6.1-X.Y.Z)
+## Pending (wax-1.8.1-1.0.0-rc2)
 
 BREAKING CHANGES:
 
@@ -9,6 +9,7 @@ FEATURES:
 IMPROVEMENTS:
 
 BUG FIXES:
+- [KEW-1430] Fix 'verify_rsa_sha256_sig' exportation.
 
 ## wax-1.8.1-1.0.0-rc1
 
