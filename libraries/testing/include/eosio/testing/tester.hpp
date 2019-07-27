@@ -379,7 +379,9 @@ namespace eosio { namespace testing {
          vcfg.reversible_guard_size = 0;
          vcfg.contracts_console = false;
 
-         vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
+         //vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
+         vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2019-06-30T00:00:00.000");
+
          vcfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );
 
          for(int i = 0; i < boost::unit_test::framework::master_test_suite().argc; ++i) {
