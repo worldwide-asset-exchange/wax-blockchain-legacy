@@ -56,6 +56,9 @@ namespace boost { namespace test_tools { namespace tt_detail {
 } } }
 
 namespace eosio { namespace testing {
+
+  const char* initial_genesis_date_str = "2019-06-30T00:00:00.000";
+
   enum class setup_policy {
       none,
       old_bios_only,
@@ -380,7 +383,7 @@ namespace eosio { namespace testing {
          vcfg.contracts_console = false;
 
          //vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
-         vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2019-06-30T00:00:00.000");
+         vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string(initial_genesis_date_str);
 
          vcfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );
 

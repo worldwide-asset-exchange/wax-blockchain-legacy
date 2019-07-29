@@ -132,7 +132,8 @@ namespace eosio { namespace testing {
       cfg.contracts_console = true;
       cfg.read_mode = read_mode;
 
-      cfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
+      //cfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
+      cfg.genesis.initial_timestamp = fc::time_point::from_iso_string(initial_genesis_date_str);
       cfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );
 
       for(int i = 0; i < boost::unit_test::framework::master_test_suite().argc; ++i) {
