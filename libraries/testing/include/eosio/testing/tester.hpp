@@ -57,7 +57,7 @@ namespace boost { namespace test_tools { namespace tt_detail {
 
 namespace eosio { namespace testing {
 
-  const char* initial_genesis_date_str = "2019-06-30T00:00:00.000";
+  inline const char* initial_genesis_date_str = "2019-06-30T00:00:00.000";
 
   enum class setup_policy {
       none,
