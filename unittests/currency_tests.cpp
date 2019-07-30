@@ -282,10 +282,10 @@ BOOST_FIXTURE_TEST_CASE(test_symbol, TESTER) try {
       BOOST_REQUIRE_EQUAL(4, sys.decimals());
    }
 
-   // default is "4,${CORE_SYMBOL_NAME}"
+   // default is "8,${CORE_SYMBOL_NAME}"
    {
       symbol def;
-      BOOST_REQUIRE_EQUAL(4, def.decimals());
+      BOOST_REQUIRE_EQUAL(8, def.decimals());
       BOOST_REQUIRE_EQUAL(CORE_SYMBOL_NAME, def.name());
    }
    // from string

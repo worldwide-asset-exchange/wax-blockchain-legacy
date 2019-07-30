@@ -13,6 +13,7 @@ BUG FIXES:
 - [KEW-1434] Fix/update sample/hello-world
 - [KEW-1396] Fix test fixture initial genesis timestamp
 - [KEW-1430] Fix 'verify_rsa_sha256_sig' exportation.
+- [KEW-1436] Fix WAX (and EOSIO) unit tests
 
 ## wax-1.6.1-1.1.0
 

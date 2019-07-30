@@ -220,8 +220,8 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
 
         // Create SYS tokens in eosio.token, set its manager as eosio
-        auto max_supply = core_from_string("10000000000.0000"); /// 1x larger than 1B initial tokens
-        auto initial_supply = core_from_string("1000000000.0000"); /// 1x larger than 1B initial tokens
+        auto max_supply = core_from_string("1000000.00000000"); /// 1x larger than 1B initial tokens
+        auto initial_supply = core_from_string("100000.00000000"); /// 1x larger than 1B initial tokens
         create_currency(N(eosio.token), config::system_account_name, max_supply);
         // Issue the genesis supply of 1 billion SYS tokens to eosio.system
         issue(N(eosio.token), config::system_account_name, config::system_account_name, initial_supply);
@@ -336,13 +336,13 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // This should thrown an error, since block one can only unstake all his stake after 10 years
 
-        BOOST_REQUIRE_THROW(undelegate_bandwidth(N(b1), N(b1), core_from_string("49999500.0000"), core_from_string("49999500.0000")), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(undelegate_bandwidth(N(b1), N(b1), core_from_string("4999.95000000"), core_from_string("4999.95000000")), eosio_assert_message_exception);
 
         // Skip 10 years
         produce_block(first_june_2028 - control->head_block_time().time_since_epoch());
 
         // Block one should be able to unstake all his stake now
-        undelegate_bandwidth(N(b1), N(b1), core_from_string("49999500.0000"), core_from_string("49999500.0000"));
+        undelegate_bandwidth(N(b1), N(b1), core_from_string("4999.95000000"), core_from_string("4999.95000000"));
 
         return;
         produce_blocks(7000); /// produce blocks until virutal bandwidth can acomadate a small user
