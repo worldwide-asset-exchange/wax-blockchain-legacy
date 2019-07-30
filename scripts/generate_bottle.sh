@@ -1,4 +1,5 @@
-#! /bin/bash
+#!/usr/bin/env bash
+set -eo pipefail
 
 VERS=`sw_vers -productVersion | awk '/10\.13\..*/{print $0}'`
 if [[ -z "$VERS" ]];
@@ -14,7 +15,7 @@ else
    MAC_VERSION="high_sierra"
 fi
 
-NAME="${PROJECT}-${VERSION}.${MAC_VERSION}.bottle.tar.gz"
+NAME="${PROJECT}-${VERSION}.${MAC_VERSION}.bottle"
 
 mkdir -p ${PROJECT}/${VERSION}/opt/eosio/lib/cmake
 
@@ -28,9 +29,9 @@ export SPREFIX
 export SUBPREFIX
 export SSUBPREFIX
 
-bash generate_tarball.sh ${NAME}
+. ./generate_tarball.sh ${NAME}
 
-hash=`openssl dgst -sha256 ${NAME} | awk 'NF>1{print $NF}'`
+hash=`openssl dgst -sha256 ${NAME}.tar.gz | awk 'NF>1{print $NF}'`
 
 echo "class Eosio < Formula
 
@@ -38,17 +39,16 @@ echo "class Eosio < Formula
    revision 0
    url \"https://github.com/eosio/eos/archive/v${VERSION}.tar.gz\"
    version \"${VERSION}\"
-   
+
    option :universal
 
-   depends_on \"gmp\" 
+   depends_on \"gmp\"
    depends_on \"gettext\"
    depends_on \"openssl\"
-   depends_on \"gmp\"
-   depends_on :xcode
-   depends_on :macos => :high_sierra
+   depends_on \"libusb\"
+   depends_on :macos => :mojave
    depends_on :arch =>  :intel
-  
+
    bottle do
       root_url \"https://github.com/eosio/eos/releases/download/v${VERSION}\"
       sha256 \"${hash}\" => :${MAC_VERSION}
@@ -59,4 +59,4 @@ echo "class Eosio < Formula
 end
 __END__" &> eosio.rb
 
-rm -r ${PROJECT}
+rm -r ${PROJECT} || exit 1

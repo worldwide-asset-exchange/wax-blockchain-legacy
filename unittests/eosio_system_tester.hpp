@@ -4,19 +4,12 @@
  */
 #pragma once
 
-#include <eosio/testing/tester.hpp>
 #include <eosio/chain/abi_serializer.hpp>
-
-#include <eosio.system/eosio.system.wast.hpp>
-#include <eosio.system/eosio.system.abi.hpp>
-
-#include <eosio.token/eosio.token.wast.hpp>
-#include <eosio.token/eosio.token.abi.hpp>
-
-#include <eosio.msig/eosio.msig.wast.hpp>
-#include <eosio.msig/eosio.msig.abi.hpp>
+#include <eosio/testing/tester.hpp>
 
 #include <fc/variant_object.hpp>
+
+#include <contracts.hpp>
 
 using namespace eosio::chain;
 using namespace eosio::testing;
@@ -49,11 +42,10 @@ public:
       create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
                N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
 
-
       produce_blocks( 100 );
 
-      set_code( N(eosio.token), eosio_token_wast );
-      set_abi( N(eosio.token), eosio_token_abi );
+      set_code( N(eosio.token), contracts::eosio_token_wasm() );
+      set_abi( N(eosio.token), contracts::eosio_token_abi().data() );
 
       {
          const auto& accnt = control->db().get<account_object,by_name>( N(eosio.token) );
@@ -62,12 +54,17 @@ public:
          token_abi_ser.set_abi(abi, abi_serializer_max_time);
       }
 
-      create_currency( N(eosio.token), config::system_account_name, core_from_string("10000000000.0000") );
-      issue(config::system_account_name,      core_from_string("1000000000.0000"));
-      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance( "eosio" ) );
+      create_currency( N(eosio.token), config::system_account_name, core_from_string("1000000.00000000") );
+      issue(config::system_account_name,      core_from_string("100000.00000000"));
+      BOOST_REQUIRE_EQUAL( core_from_string("100000.00000000"), get_balance( "eosio" ) );
 
-      set_code( config::system_account_name, eosio_system_wast );
-      set_abi( config::system_account_name, eosio_system_abi );
+      set_code( config::system_account_name, contracts::eosio_system_wasm() );
+      set_abi( config::system_account_name, contracts::eosio_system_abi().data() );
+
+      base_tester::push_action(config::system_account_name, N(init),
+                            config::system_account_name,  mutable_variant_object()
+                            ("version", 0)
+                            ("core", CORE_SYM_STR));
 
       {
          const auto& accnt = control->db().get<account_object,by_name>( config::system_account_name );
@@ -78,13 +75,22 @@ public:
 
       produce_blocks();
 
-      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("1.0000"), false );
-      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("0.4500"), false );
-      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1.0000"), false );
-
-      BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
+      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("0.00010000"), false );
+      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("0.00004500"), false );
+      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("0.00010000"), false );
+ 
+      BOOST_REQUIRE_EQUAL( core_from_string("100000.00000000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
    }
 
+   action_result open( account_name  owner,
+                       const string& symbolname,
+                       account_name  ram_payer    ) {
+      return push_action( ram_payer, N(open), mvo()
+                          ( "owner", owner )
+                          ( "symbol", symbolname )
+                          ( "ram_payer", ram_payer )
+         );
+   }
 
    void create_accounts_with_resources( vector<account_name> accounts, account_name creator = config::system_account_name ) {
       for( auto a : accounts ) {
@@ -117,8 +123,8 @@ public:
                                             mvo()
                                             ("from", creator)
                                             ("receiver", a)
-                                            ("stake_net_quantity", core_from_string("10.0000") )
-                                            ("stake_cpu_quantity", core_from_string("10.0000") )
+                                            ("stake_net_quantity", core_from_string("0.00100000") )
+                                            ("stake_cpu_quantity", core_from_string("0.00100000") )
                                             ("transfer", 0 )
                                           )
                                 );
@@ -129,7 +135,7 @@ public:
    }
 
    transaction_trace_ptr create_account_with_resources( account_name a, account_name creator, asset ramfunds, bool multisig,
-                                                        asset net = core_from_string("10.0000"), asset cpu = core_from_string("10.0000") ) {
+                                                        asset net = core_from_string("0.00100000"), asset cpu = core_from_string("0.00100000") ) {
       signed_transaction trx;
       set_transaction_headers(trx);
 
@@ -175,9 +181,9 @@ public:
       account_name creator(config::system_account_name);
       signed_transaction trx;
       set_transaction_headers(trx);
-      asset cpu = core_from_string("80.0000");
-      asset net = core_from_string("80.0000");
-      asset ram = core_from_string("1.0000");
+      asset cpu = core_from_string("0.00800000");
+      asset net = core_from_string("0.00800000");
+      asset ram = core_from_string("0.00010000");
 
       for (const auto& a: accounts) {
          authority owner_auth( get_public_key( a, "owner" ) );
@@ -417,8 +423,8 @@ public:
                                                ("is_priv", 1)
          );
 
-         set_code( N(eosio.msig), eosio_msig_wast );
-         set_abi( N(eosio.msig), eosio_msig_abi );
+         set_code( N(eosio.msig), contracts::eosio_msig_wasm() );
+         set_abi( N(eosio.msig), contracts::eosio_msig_abi().data() );
 
          produce_blocks();
          const auto& accnt = control->db().get<account_object,by_name>( N(eosio.msig) );
@@ -431,8 +437,8 @@ public:
 
    vector<name> active_and_vote_producers() {
       //stake more than 15% of total EOS supply to activate chain
-      transfer( "eosio", "alice1111111", core_from_string("650000000.0000"), "eosio" );
-      BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_from_string("300000000.0000"), core_from_string("300000000.0000") ) );
+      transfer( "eosio", "alice1111111", core_from_string("65000.00000000"), "eosio" );
+      BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_from_string("30000.00000000"), core_from_string("30000.00000000") ) );
 
       // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
       std::vector<account_name> producer_names;
@@ -464,9 +470,9 @@ public:
 
       //vote for producers
       {
-         transfer( config::system_account_name, "alice1111111", core_from_string("100000000.0000"), config::system_account_name );
-         BOOST_REQUIRE_EQUAL(success(), stake( "alice1111111", core_from_string("30000000.0000"), core_from_string("30000000.0000") ) );
-         BOOST_REQUIRE_EQUAL(success(), buyram( "alice1111111", "alice1111111", core_from_string("30000000.0000") ) );
+         transfer( config::system_account_name, "alice1111111", core_from_string("10000.00000000"), config::system_account_name );
+         BOOST_REQUIRE_EQUAL(success(), stake( "alice1111111", core_from_string("3000.00000000"), core_from_string("3000.00000000") ) );
+         BOOST_REQUIRE_EQUAL(success(), buyram( "alice1111111", "alice1111111", core_from_string("3000.00000000") ) );
          BOOST_REQUIRE_EQUAL(success(), push_action(N(alice1111111), N(voteproducer), mvo()
                                                     ("voter",  "alice1111111")
                                                     ("proxy", name(0).to_string())
@@ -495,8 +501,8 @@ public:
                                                mvo()
                                                ("from", name{config::system_account_name})
                                                ("receiver", "producer1111")
-                                               ("stake_net_quantity", core_from_string("150000000.0000") )
-                                               ("stake_cpu_quantity", core_from_string("0.0000") )
+                                               ("stake_net_quantity", core_from_string("15000.00000000") )
+                                               ("stake_cpu_quantity", core_from_string("0.00000000") )
                                                ("transfer", 1 )
                                              )
                                  );
@@ -513,8 +519,8 @@ public:
                                                mvo()
                                                ("from", "producer1111")
                                                ("receiver", "producer1111")
-                                               ("unstake_net_quantity", core_from_string("150000000.0000") )
-                                               ("unstake_cpu_quantity", core_from_string("0.0000") )
+                                               ("unstake_net_quantity", core_from_string("15000.00000000") )
+                                               ("unstake_cpu_quantity", core_from_string("0.00000000") )
                                              )
                                  );
 
@@ -535,7 +541,6 @@ inline fc::mutable_variant_object voter( account_name acct ) {
       ("proxy", name(0).to_string())
       ("producers", variants() )
       ("staked", int64_t(0))
-      //("last_vote_weight", double(0))
       ("proxied_vote_weight", double(0))
       ("is_proxy", 0)
       ;

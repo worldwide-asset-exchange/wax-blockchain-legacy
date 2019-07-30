@@ -1,6 +1,21 @@
 # Changelog
 
-## Pending (wax-1.6.1-1.1.1)
+## Pending (wax-1.8.1-1.0.0)
+
+BREAKING CHANGES:
+- [KEW-1378] Bump to v1.8.1.
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+- [KEW-1434] Fix/update sample/hello-world
+- [KEW-1396] Fix test fixture initial genesis timestamp
+- [KEW-1430] Fix 'verify_rsa_sha256_sig' exportation.
+- [KEW-1436] Fix WAX (and EOSIO) unit tests
+
+## wax-1.6.1-1.1.0
 
 BREAKING CHANGES:
 - [KEW-1316] Renaming EOSIO with WAX.
