@@ -1,8 +1,11 @@
-#include <eosiolib/eosio.hpp>
+#include <eosio/eosio.hpp>
+
 #include <string>
+#include <string_view>
 
 // WAX specific APIs
 extern "C" {
+    __attribute__((eosio_wasm_import))
     int verify_rsa_sha256_sig(const char* message, uint32_t message_len,
                               const char* signature, uint32_t signature_len,
                               const char* exponent, uint32_t exponent_len,
@@ -21,38 +24,35 @@ inline bool verify_rsa_sha256_sig(std::string_view message,
         modulus.data(), modulus.size());
 }
 
+using namespace eosio;
 
-class waxtest: public eosio::contract {
+CONTRACT wax_rsa: public contract {
 public:
-    waxtest(account_name self)
-        : contract(self)
-        , results_table(self, self) {
+    wax_rsa(name receiver, name code, datastream<const char*> ds)
+        : contract(receiver, code, ds)
+        , results_table(receiver, receiver.value) {
     }
 
-    //@abi action
-    void verrsasig(const std::string& message,
-                   const std::string& signature,
-                   const std::string& exponent,
-                   const std::string& modulus)
+    ACTION verrsasig(const std::string& message,
+                     const std::string& signature,
+                     const std::string& exponent,
+                     const std::string& modulus)
     {
-        eosio::print("verrsasig called!\n");
+        print("verrsasig called!\n");
         
         set_last_result(
             verify_rsa_sha256_sig(message, signature, exponent, modulus));
     }
 
 private:
-    //@abi table results
-    struct results {
+    TABLE results {
         uint64_t id;
         bool     value;
 
         auto primary_key() const { return id; }
-
-        EOSLIB_SERIALIZE(results, (id)(value))
     };
 
-    eosio::multi_index<N(results), results> results_table;
+    eosio::multi_index<"results"_n, results> results_table;
 
     void set_last_result(bool value) {
         auto it = results_table.find(0);
@@ -71,4 +71,4 @@ private:
    
 };
 
-EOSIO_ABI(waxtest, (verrsasig))
+EOSIO_DISPATCH(wax_rsa, (verrsasig))

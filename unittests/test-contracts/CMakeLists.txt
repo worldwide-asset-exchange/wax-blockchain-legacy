@@ -22,3 +22,5 @@ add_subdirectory( test_api )
 add_subdirectory( test_api_db )
 add_subdirectory( test_api_multi_index )
 add_subdirectory( test_ram_limit )
+add_subdirectory( wax_rsa )
+

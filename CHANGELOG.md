@@ -3,28 +3,6 @@
 ## Pending (wax-1.8.1-1.0.0)
 
 BREAKING CHANGES:
-
-FEATURES:
-
-IMPROVEMENTS:
-
-BUG FIXES:
-- [KEW-1434] Fix/update sample/hello-world
-
-## wax-1.8.1-1.0.0-rc2
-
-BREAKING CHANGES:
-
-FEATURES:
-
-IMPROVEMENTS:
-
-BUG FIXES:
-- [KEW-1430] Fix 'verify_rsa_sha256_sig' exportation.
-
-## wax-1.8.1-1.0.0-rc1
-
-BREAKING CHANGES:
 - [KEW-1378] Bump to v1.8.1.
 
 FEATURES:
@@ -32,6 +10,10 @@ FEATURES:
 IMPROVEMENTS:
 
 BUG FIXES:
+- [KEW-1434] Fix/update sample/hello-world
+- [KEW-1396] Fix test fixture initial genesis timestamp
+- [KEW-1430] Fix 'verify_rsa_sha256_sig' exportation.
+- [KEW-1436] Fix WAX (and EOSIO) unit tests
 
 ## wax-1.6.1-1.1.0
 
