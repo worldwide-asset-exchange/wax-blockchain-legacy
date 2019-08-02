@@ -26,8 +26,16 @@ If you have previously installed wax-blockchain, please run the wax_uninstall sc
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
-$ ./wax_build.sh
-$ sudo ./wax_install.sh
+
+# Set installation directory, then build
+$ ./wax_build.sh -i ~/wax-blockchain
+
+# This will install the blockchain in the previously set installation directory
+$ ./wax_install.sh
+
+# Optional: Add the blockchain to your path (it requires console relogin)
+echo "export PATH=~/wax-blockchain/bin:$PATH" >> ~/.bashrc
+
 ```
 #### Troubleshooting
 
