@@ -27,13 +27,13 @@ $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
 
-# Set installation directory, then build
+# Build (and set the installation directory)
 $ ./wax_build.sh -i ~/wax-blockchain
 
 # This will install the blockchain in the previously set installation directory
 $ ./wax_install.sh
 
-# Optional: Add the blockchain to your path (it requires console relogin)
+# Optional: Add the blockchain to your path (it requires a console relogin)
 echo "export PATH=~/wax-blockchain/bin:$PATH" >> ~/.bashrc
 
 ```
