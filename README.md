@@ -26,8 +26,16 @@ If you have previously installed wax-blockchain, please run the wax_uninstall sc
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
-$ ./wax_build.sh
-$ sudo ./wax_install.sh
+
+# Build (and set the installation directory)
+$ ./wax_build.sh -i ~/wax-blockchain
+
+# This will install the blockchain in the previously set installation directory
+$ ./wax_install.sh
+
+# Optional: Add the blockchain to your path (it requires a console relogin)
+echo "export PATH=~/wax-blockchain/bin:$PATH" >> ~/.bashrc
+
 ```
 #### Troubleshooting
 
@@ -35,7 +43,7 @@ If you have trouble when building the blockchain, may be this can help you:
 - [FC linking problem](patches/fc/README.md)
 
 ### Running a full node
-The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/mainnet) directory contains configuration files and instructions to launch a full node.
+The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) directory contains configuration files and instructions to launch a full node.
 
 ### Supported Operating Systems
 EOSIO currently supports the following operating systems:

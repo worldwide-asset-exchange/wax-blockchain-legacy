@@ -36,7 +36,7 @@ function usage() {
    printf "Usage: $0 OPTION...
   -P          Build with pinned clang and libcxx
   -o TYPE     Build <Debug|Release|RelWithDebInfo|MinSizeRel> (default: Release)
-  -s NAME     Core Symbol Name <1-7 characters> (default: SYS)
+  -s NAME     Core Symbol Name <1-7 characters> (default: WAX)
   -b DIR      Use pre-built boost in DIR
   -i DIR      Directory to use for installing dependencies & EOSIO (default: $HOME)
   -r KEY      Public root key for eosio account
@@ -47,6 +47,9 @@ function usage() {
    \\n" "$0" 1>&2
    exit 1
 }
+
+# Default symbol name
+CORE_SYMBOL_NAME=WAX
 
 TIME_BEGIN=$( date -u +%s )
 if [ $# -ne 0 ]; then
