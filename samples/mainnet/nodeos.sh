@@ -12,5 +12,5 @@ docker run -t --sig-proxy=true --name nodeos \
     -v $HOST_WAX_HOME/genesis.json:$NODEOS_HOME/config/genesis.json \
     -p 127.0.0.1:8888:8888 \
     -p 9876:9876 \
-    -t waxteam/production:wax-1.8.1-1.0.0 \
+    waxteam/production:wax-1.8.1-1.0.0 \
     nodeos --genesis-json $NODEOS_HOME/config/genesis.json
