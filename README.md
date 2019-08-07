@@ -46,7 +46,7 @@ If you have trouble when building the blockchain, may be this can help you:
 The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) directory contains configuration files and instructions to launch a full node.
 
 ### Supported Operating Systems
-EOSIO currently supports the following operating systems:
+WAX currently supports the following operating systems:
 - Amazon 2017.09 and higher
 - Centos 7
 - Fedora 25 and higher (Fedora 27 recommended)
