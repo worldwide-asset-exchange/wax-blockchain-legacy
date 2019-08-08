@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 - [KEW-1450] Fix documentation
+- [KEW-1450] Fix upgrade documentation
 
 ## wax-1.8.1-1.0.0
 
