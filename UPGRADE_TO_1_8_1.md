@@ -8,6 +8,7 @@ The upgrade to 1.8.1 boils down to 3 key steps:
 1. Upgrading your node's docker image to our 1.8.1-1.0.0 image, or replacing your nodeos binary with a self-compiled version from our 1.8.1-1.0.0 tag on Github.
 2. Deleting (and optionally backing up) your old blockchain data.
 3. Resyncing the blockchain
+
 We explain these steps in some detail assuming that the node operator is using our ready to use docker images to run their node, similar to the setup explained here: [Mainnet full node example](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet).
 If you are running a self compiled version of the WAX node, the steps are similar, but you will be simply restarting your nodeos executable rather than restarting the docker image.
 
@@ -43,10 +44,9 @@ docker run -t --sig-proxy=true --name nodeos \
     -v $HOST_WAX_HOME/data:$NODEOS_HOME/data \
     -v $HOST_WAX_HOME/config.ini:$NODEOS_HOME/config/config.ini \
     -v $HOST_WAX_HOME/genesis.json:$NODEOS_HOME/config/genesis.json \
-    -v $HOST_WAX_HOME/protocol_features:$NODEOS_HOME/config/protocol_features \
     -p 127.0.0.1:8888:8888 \
     -p 9876:9876 \
-    -t waxteam/production:wax-1.8.1-1.0.0 \
+    waxteam/production:wax-1.8.1-1.0.0 \
     nodeos --genesis-json $NODEOS_HOME/config/genesis.json
 ```
 
@@ -64,7 +64,7 @@ bnet-no-trx
 $ $HOST_WAX_HOME/nodeos.sh
 ```
 
-#### 6. Validate the running version:
+#### 6. Validate the running version
 Validate that we are running the expected version.
 ```console
 $ docker exec nodeos nodeos --version
@@ -72,14 +72,14 @@ $ docker exec nodeos nodeos --version
 wax-1.8.1-1.0.0
 ```
 
-#### 7. Review log:
+#### 7. Review log
 Check out logs to verify that everything is fine.
 ```console
 $ docker logs nodeos
 # Should see several “Received block” type lines with increasing block numbers
 ```
 
-#### 8. Allow the node to complete the full sync:
+#### 8. Allow the node to complete the full sync
 It may take some time for your node to fully synchronize the full chain history.
 
 ### Upgrade Notes
