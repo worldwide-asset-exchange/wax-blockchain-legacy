@@ -7,6 +7,7 @@ BREAKING CHANGES:
 FEATURES:
 
 IMPROVEMENTS:
+- [KEW-1494] Producers blocktime optimization.
 - [KEW-1438] Upgrade instructions for 1.8.1-1.0.0
 
 BUG FIXES:
