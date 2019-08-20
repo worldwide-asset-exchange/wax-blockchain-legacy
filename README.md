@@ -20,7 +20,7 @@ WAX is released under the open source MIT license and is offered “AS IS” wit
 There is no public testnet running currently.
 ### Installation Instructions
 You have 2 ways to run a node:
-1. Use our [production docker images](https://cloud.docker.com/u/waxteam/repository/docker/waxteam/production). This is the official and recommended way, also the faster, you can run a node in seconds. See the [mainnet sample](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) for more information.
+1. Use our [production docker images](https://cloud.docker.com/u/waxteam/repository/docker/waxteam/production). This is the official and recommended way, also the faster one, you can run a node in seconds. See the [mainnet sample](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) for more information.
 2. Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
 
 ```console
@@ -39,7 +39,7 @@ $ ./wax_install.sh
 echo "export PATH=~/wax-blockchain/bin:$PATH" >> ~/.bashrc
 
 ```
-If you have previously installed wax-blockchain, please run the wax_uninstall script (it is in the directory where you cloned wax-blockchain).
+If you have previously installed *wax-blockchain*, please run the *wax_uninstall* script (it is in the directory where you cloned *wax-blockchain*).
 
 #### Troubleshooting
 
