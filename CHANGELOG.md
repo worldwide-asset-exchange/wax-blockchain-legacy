@@ -1,8 +1,9 @@
 # Changelog
 
-## Pending (wax-1.8.1-X.Y.Z)
+## Pending (wax-1.8.2-0.0.0)
 
 BREAKING CHANGES:
+- [KEW-1378] Bump to v1.8.2.
 
 FEATURES:
 
