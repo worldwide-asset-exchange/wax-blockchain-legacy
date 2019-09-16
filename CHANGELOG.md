@@ -1,6 +1,30 @@
 # Changelog
 
-## Pending (wax-1.8.1-1.0.0)
+## Pending (wax-x.y.z-a.b.c)
+
+BREAKING CHANGES:
+
+FEATURES:
+
+IMPROVEMENTS:
+
+BUG FIXES:
+
+## wax-1.8.3-1.0.0
+
+BREAKING CHANGES:
+- [KEW-1564] Bump to v1.8.3.
+
+FEATURES:
+
+IMPROVEMENTS:
+- [KEW-1438] Upgrade instructions for 1.8.1-1.0.0
+
+BUG FIXES:
+- [KEW-1450] Fix documentation
+- [KEW-1450] Fix upgrade documentation
+
+## wax-1.8.1-1.0.0
 
 BREAKING CHANGES:
 - [KEW-1378] Bump to v1.8.1.

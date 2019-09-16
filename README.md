@@ -19,33 +19,43 @@ WAX is released under the open source MIT license and is offered “AS IS” wit
 
 There is no public testnet running currently.
 ### Installation Instructions
-If you have previously installed wax-blockchain, please run the wax_uninstall script (it is in the directory where you cloned wax-blockchain). Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
+You have 2 ways to run a node:
+1. Use our [production docker images](https://cloud.docker.com/u/waxteam/repository/docker/waxteam/production). This is the official and recommended way, also the faster one, you can run a node in seconds. See the [mainnet sample](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) for more information.
+2. Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
 
 ```console
 
 $ git clone https://github.com/worldwide-asset-exchange/wax-blockchain.git
 $ cd wax-blockchain
 $ git submodule update --init --recursive
-$ ./wax_build.sh
-$ sudo ./wax_install.sh
+
+# Build (and set the installation directory)
+$ ./wax_build.sh -i ~/wax-blockchain
+
+# This will install the blockchain in the previously set installation directory
+$ ./wax_install.sh
+
+# Optional: Add the blockchain to your path (it requires a console relogin)
+echo "export PATH=~/wax-blockchain/bin:$PATH" >> ~/.bashrc
+
 ```
+If you have previously installed *wax-blockchain*, please run the *wax_uninstall* script (it is in the directory where you cloned *wax-blockchain*).
+
 #### Troubleshooting
 
 If you have trouble when building the blockchain, may be this can help you:
 - [FC linking problem](patches/fc/README.md)
 
 ### Running a full node
-The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/mainnet) directory contains configuration files and instructions to launch a full node.
+The [mainnet](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) directory contains configuration files and instructions to launch a full node.
 
 ### Supported Operating Systems
-EOSIO currently supports the following operating systems:
-- Amazon 2017.09 and higher
-- Centos 7
-- Fedora 25 and higher (Fedora 27 recommended)
-- Mint 18
+WAX currently supports the following operating systems:
+- Amazon Linux 2
+- CentOS 7
 - Ubuntu 16.04
 - Ubuntu 18.04
-- MacOS Darwin 10.12 and higher (MacOS 10.14.x recommended)
+- MacOS 10.14 (Mojave)
 
 ### Resources
 - [Website](https://wax.io)

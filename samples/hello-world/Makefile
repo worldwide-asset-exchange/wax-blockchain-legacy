@@ -21,11 +21,11 @@
 # THE SOFTWARE.
 
 CONTRACT_NAME = helloworld
-BLOCKCHAIN_DEV_VERSION = wax-1.8.1-1.0.0-rc3
+DEV_DOCKER_VERSION = wax-1.6.1-1.0.0
 NODEOS_URL ?= https://chain.wax.io/
 CONTAINER = ${CONTRACT_NAME}-sample
 WORK_DIR = /opt/${CONTRACT_NAME}
-DOCKER_COMMON = -v `pwd`:${WORK_DIR} --name ${CONTAINER} -w ${WORK_DIR} waxteam/dev:${BLOCKCHAIN_DEV_VERSION}
+DOCKER_COMMON = -v `pwd`:${WORK_DIR} --name ${CONTAINER} -w ${WORK_DIR} waxteam/dev:${DEV_DOCKER_VERSION}
 AS_LOCAL = --user $(shell id -u):$(shell id -g)
 CLEOS=/usr/local/eosio/bin/cleos
 CLEOSN=${CLEOS} -u ${NODEOS_URL}
