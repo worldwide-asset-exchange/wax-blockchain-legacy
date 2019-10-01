@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 CONTRACT_NAME = helloworld
-DEV_DOCKER_VERSION = wax-1.6.1-1.1.0
+DEV_DOCKER_VERSION = wax-1.6.1-1.2.0
 NODEOS_URL ?= https://chain.wax.io/
 CONTAINER = ${CONTRACT_NAME}-sample
 WORK_DIR = /opt/${CONTRACT_NAME}
