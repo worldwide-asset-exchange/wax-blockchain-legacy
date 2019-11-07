@@ -2741,11 +2741,11 @@ int64_t controller::set_proposed_producers( vector<producer_key> producers ) {
 
    if( gpo.proposed_schedule_block_num.valid() ) {
       if( *gpo.proposed_schedule_block_num != cur_block_num )
-         return -1; // there is already a proposed schedule set in a previous block, wait for it to become pending
+         return -2; // there is already a proposed schedule set in a previous block, wait for it to become pending
 
       if( std::equal( producers.begin(), producers.end(),
                       gpo.proposed_schedule.producers.begin(), gpo.proposed_schedule.producers.end() ) )
-         return -1; // the proposed producer schedule does not change
+         return -3; // the proposed producer schedule does not change
    }
 
    producer_schedule_type sch;
@@ -2767,7 +2767,7 @@ int64_t controller::set_proposed_producers( vector<producer_key> producers ) {
    }
 
    if( std::equal( producers.begin(), producers.end(), begin, end ) )
-      return -1; // the producer schedule would not change
+      return -4; // the producer schedule would not change
 
    sch.producers = std::move(producers);
 

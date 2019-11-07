@@ -1,12 +1,13 @@
 # Changelog
 
-## Pending (wax-x.y.z-a.b.c)
+## Pending (wax-1.8.4-1.1.0)
 
 BREAKING CHANGES:
 
 FEATURES:
 
 IMPROVEMENTS:
+- [KEW-42] Improve set_proposed_producers error codes
 
 BUG FIXES:
 
