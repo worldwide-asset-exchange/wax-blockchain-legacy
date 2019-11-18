@@ -84,3 +84,5 @@ var/lib/node_*
 .idea/
 *.iws
 .DS_Store
+/.vs
+/out/build/x64-Debug
