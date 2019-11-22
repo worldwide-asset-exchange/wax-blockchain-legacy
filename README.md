@@ -1,5 +1,5 @@
 ## Welcome to the WAX Source Code Repository!
-This software enables businesses to rapidly build and deploy high-performance and high-security blockchain-based applications.
+This software enables businesses to rapidly build and deploy high-performance and high-security blockchain-based applications. For developer tips and tutorials, refer to our [WAX Blockchain Developer Hive](https://developer.wax.io/).
 
 The Worldwide Asset eXchange™ (WAX) is a purpose-built blockchain and protocol token designed to make e-commerce transactions faster, easier, and safer for all participants. The WAX Blockchain mainnet uses Delegated Proof of Stake (DPoS) as its consensus mechanism and is fully backward compatible with EOS. The custom features and incentive mechanisms developed by WAX are designed to optimize the blockchain’s usability in e-commerce, and encourage voting on guilds and proposals.
 
@@ -19,9 +19,13 @@ WAX is released under the open source MIT license and is offered “AS IS” wit
 
 There is no public testnet running currently.
 ### Installation Instructions
-You have 2 ways to run a node:
+
+You have several ways to run a node and develop smart contracts on the WAX Blockchain:
 1. Use our [production docker images](https://cloud.docker.com/u/waxteam/repository/docker/waxteam/production). This is the official and recommended way, also the faster one, you can run a node in seconds. See the [mainnet sample](https://github.com/worldwide-asset-exchange/wax-blockchain/tree/develop/samples/mainnet) for more information.
-2. Currently, we are not providing pre-compiled packages. Therefore, you will have to compile the source code and install it with the following instructions:
+2. Complete our [Docker Quickstart](https://developer.wax.io/dapps/docker-quickstart/). You can also find WAX tutorials in the [dApp Development](https://developer.wax.io/dapps/) section of the [WAX Blockchain Developer Hive](https://developer.wax.io/).
+3. Currently, we are not providing pre-compiled packages. Therefore, if you can't use our Docker images, you will have to compile the source code and install it with the following instructions:
+
+**Note:** Building from source is not supported. We recommend using our [Docker Images](https://hub.docker.com/u/waxteam) instead. 
 
 ```console
 
@@ -60,6 +64,7 @@ WAX currently supports the following operating systems:
 ### Resources
 - [Website](https://wax.io)
 - [Blog](https://wax.io/blog)
+- [WAX Blockchain Developer Hive](https://developer.wax.io/)
 - [Community Telegram Group](https://t.me/wax_io)
 - [White Paper](https://wax.io/uploads/WAX_White_Paper.pdf)
 
