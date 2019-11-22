@@ -1,6 +1,6 @@
 # Hello World sample
 
-## The idea of this sample is to show how to build and deploy a simple smart contract project.
+## The idea of this sample is to show how to build and deploy a simple smart contract project. For more information and tips on customizing these scripts, refer to [Docker Deploy](https://developer.wax.io/dapps/docker-deploy/) on the WAX Developer Hive.
 
 ### Requirements
 - docker, installed and configured to run without sudo
