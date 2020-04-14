@@ -17,7 +17,6 @@ echo "getting submodule info for $CURRENT_BRANCH"
 while read -r a b; do
     PR_MAP[$a]=$b
 done < <(git submodule --quiet foreach --recursive 'echo $path `git log -1 --format=%ct`')
-
 echo "getting submodule info for $BASE_BRANCH"
 git checkout $BASE_BRANCH 1> /dev/null
 git submodule update --init 1> /dev/null
