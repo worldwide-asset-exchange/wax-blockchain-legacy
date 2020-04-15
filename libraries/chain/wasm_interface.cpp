@@ -915,10 +915,10 @@ class crypto_api : public context_aware_api {
        *
        * signature, exponent and modulus must be hexadecimal strings 
        */
-      int verify_rsa_sha256_sig(array_ptr<char> message,   size_t message_len,
-                                array_ptr<char> signature, size_t signature_len,
-                                array_ptr<char> exponent,  size_t exponent_len,
-                                array_ptr<char> modulus,   size_t modulus_len)
+      int verify_rsa_sha256_sig(array_ptr<char> message,   uint32_t message_len,
+                                array_ptr<char> signature, uint32_t signature_len,
+                                array_ptr<char> exponent,  uint32_t exponent_len,
+                                array_ptr<char> modulus,   uint32_t modulus_len)
       {
         using std::string;
         using namespace std::string_literals;
@@ -1989,9 +1989,8 @@ REGISTER_INTRINSICS(crypto_api,
    (sha1,                   void(int, int, int)           )
    (sha256,                 void(int, int, int)           )
    (sha512,                 void(int, int, int)           )
-   (ripemd160,              void(int, int, int)           )
-  
-    (verify_rsa_sha256_sig,  int(int, int, int, int, int, int, int, int))
+   (ripemd160,              void(int, int, int)           )  
+   (verify_rsa_sha256_sig,  int(int, int, int, int, int, int, int, int))
 );
 
 

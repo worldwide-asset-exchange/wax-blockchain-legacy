@@ -144,6 +144,7 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "env.sha256"_s,
    "env.sha512"_s,
    "env.ripemd160"_s,
+   "env.verify_rsa_sha256_sig"_s,
    "env.check_transaction_authorization"_s,
    "env.check_permission_authorization"_s,
    "env.get_permission_last_used"_s,
