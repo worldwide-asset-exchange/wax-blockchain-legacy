@@ -38,7 +38,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/snapshots.hpp.in ${CMAKE_CURRENT_BINA
 ### BUILD UNIT TEST EXECUTABLE ###
 file(GLOB UNIT_TESTS "*.cpp") # find all unit test suites
 
-set(UNIT_TESTS ${UNIT_TESTS} wax/signature_tests.cpp)
+set(UNIT_TESTS ${UNIT_TESTS} ${CMAKE_CURRENT_SOURCE_DIR}/wax/signature_tests.cpp)
 
 add_executable( unit_test ${UNIT_TESTS} ) # build unit tests as one executable
 

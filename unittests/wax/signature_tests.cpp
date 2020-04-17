@@ -43,7 +43,6 @@ FC_REFLECT(results_entry, (id)(value));
 
 
 BOOST_AUTO_TEST_SUITE(wax_tests)
-BOOST_AUTO_TEST_SUITE(signature_tests)
 
 // Custom fixture
 struct wax_fixture: public EOSIO_FIXTURE {
@@ -170,5 +169,4 @@ BOOST_FIXTURE_TEST_CASE(corrupted_sginature, wax_fixture) {
 }
 
 
-BOOST_AUTO_TEST_SUITE_END() // signature_tests
 BOOST_AUTO_TEST_SUITE_END() // wax_tests
