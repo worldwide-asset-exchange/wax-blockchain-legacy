@@ -23,13 +23,5 @@ wax-2.0.
 WAX".
 
 
-Need to figure out how to generate WAX snapshots for these tests:
-
-```
-         85 - snapshot_unit_test_wabt (Failed)
-         86 - snapshot_unit_test_eos-vm-oc (Failed)
-         87 - snapshot_unit_test_eos-vm (Failed)
-         88 - snapshot_unit_test_eos-vm-jit (Failed)
-```
 
 
