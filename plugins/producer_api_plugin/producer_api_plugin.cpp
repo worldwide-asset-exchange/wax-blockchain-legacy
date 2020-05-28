@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <eosio/producer_api_plugin/producer_api_plugin.hpp>
 #include <eosio/chain/exceptions.hpp>
 
@@ -128,7 +124,7 @@ void producer_api_plugin::plugin_startup() {
                                  producer_plugin::get_supported_protocol_features_params), 201),
        CALL(producer, producer, get_account_ram_corrections,
             INVOKE_R_R(producer, get_account_ram_corrections, producer_plugin::get_account_ram_corrections_params), 201),
-   });
+   }, appbase::priority::medium);
 }
 
 void producer_api_plugin::plugin_initialize(const variables_map& options) {

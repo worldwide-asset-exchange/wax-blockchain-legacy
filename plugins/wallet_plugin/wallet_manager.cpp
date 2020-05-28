@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <appbase/application.hpp>
 #include <eosio/wallet_plugin/wallet_manager.hpp>
 #include <eosio/wallet_plugin/wallet.hpp>
@@ -16,7 +12,7 @@ constexpr auto password_prefix = "PW";
 
 std::string gen_password() {
    auto key = private_key_type::generate();
-   return password_prefix + string(key);
+   return password_prefix + key.to_string();
 
 }
 

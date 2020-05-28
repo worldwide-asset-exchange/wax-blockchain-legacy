@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <eosio/faucet_testnet_plugin/faucet_testnet_plugin.hpp>
 #include <eosio/chain_plugin/chain_plugin.hpp>
 
@@ -240,7 +236,7 @@ struct faucet_testnet_plugin_impl {
 
       _blocking_accounts = true;
       _timer.expires_from_now(boost::posix_time::microseconds(_create_interval_msec * 1000));
-      _timer.async_wait(boost::bind(&faucet_testnet_plugin_impl::timer_fired, this));
+      _timer.async_wait(std::bind(&faucet_testnet_plugin_impl::timer_fired, this));
 
       return std::make_pair(account_created, fc::variant(eosio::detail::faucet_testnet_empty()));
    }

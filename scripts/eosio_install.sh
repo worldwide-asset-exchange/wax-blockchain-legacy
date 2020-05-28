@@ -59,4 +59,3 @@ printf "${COLOR_GREEN}WAX has been installed into ${CACHED_INSTALL_PATH}/bin${CO
 printf "\\n${COLOR_YELLOW}Uninstall with: wax_uninstall.sh${COLOR_NC}\\n"
 printf "==============================================================================================\\n\\n"
 resources
-

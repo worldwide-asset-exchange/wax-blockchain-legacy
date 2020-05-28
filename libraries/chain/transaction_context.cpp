@@ -21,134 +21,32 @@
 
 namespace eosio { namespace chain {
 
-namespace bacc = boost::accumulators;
-
-   struct deadline_timer_verify {
-      deadline_timer_verify() {
-         //keep longest first in list. You're effectively going to take test_intervals[0]*sizeof(test_intervals[0])
-         //time to do the the "calibration"
-         int test_intervals[] = {50000, 10000, 5000, 1000, 500, 100, 50, 10};
-
-         struct sigaction act;
-         sigemptyset(&act.sa_mask);
-         act.sa_handler = timer_hit;
-         act.sa_flags = 0;
-         if(sigaction(SIGALRM, &act, NULL))
-            return;
-
-         sigset_t alrm;
-         sigemptyset(&alrm);
-         sigaddset(&alrm, SIGALRM);
-         int dummy;
-
-         for(int& interval : test_intervals) {
-            unsigned int loops = test_intervals[0]/interval;
-
-            for(unsigned int i = 0; i < loops; ++i) {
-               struct itimerval enable = {{0, 0}, {0, interval}};
-               hit = 0;
-               auto start = std::chrono::high_resolution_clock::now();
-               if(setitimer(ITIMER_REAL, &enable, NULL))
-                  return;
-               while(!hit) {}
-               auto end = std::chrono::high_resolution_clock::now();
-               int timer_slop = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() - interval;
-
-               //since more samples are run for the shorter expirations, weigh the longer expirations accordingly. This
-               //helps to make a few results more fair. Two such examples: AWS c4&i5 xen instances being rather stable
-               //down to 100us but then struggling with 50us and 10us. MacOS having performance that seems to correlate
-               //with expiry length; that is, long expirations have high error, short expirations have low error.
-               //That said, for these platforms, a tighter tolerance may possibly be achieved by taking performance
-               //metrics in mulitple bins and appliying the slop based on which bin a deadline resides in. Not clear
-               //if that's worth the extra complexity at this point.
-               samples(timer_slop, bacc::weight = interval/(float)test_intervals[0]);
-            }
-         }
-         timer_overhead = bacc::mean(samples) + sqrt(bacc::variance(samples))*2; //target 95% of expirations before deadline
-         use_deadline_timer = timer_overhead < 1000;
-
-         act.sa_handler = SIG_DFL;
-         sigaction(SIGALRM, &act, NULL);
-      }
-
-      static void timer_hit(int) {
-         hit = 1;
-      }
-      static volatile sig_atomic_t hit;
-
-      bacc::accumulator_set<int, bacc::stats<bacc::tag::mean, bacc::tag::min, bacc::tag::max, bacc::tag::variance>, float> samples;
-      bool use_deadline_timer = false;
-      int timer_overhead;
-   };
-   volatile sig_atomic_t deadline_timer_verify::hit;
-   static deadline_timer_verify deadline_timer_verification;
-
-   deadline_timer::deadline_timer() {
-      if(initialized)
-         return;
-      initialized = true;
-
-      #define TIMER_STATS_FORMAT "min:${min}us max:${max}us mean:${mean}us stddev:${stddev}us"
-      #define TIMER_STATS \
-         ("min", bacc::min(deadline_timer_verification.samples))("max", bacc::max(deadline_timer_verification.samples)) \
-         ("mean", (int)bacc::mean(deadline_timer_verification.samples))("stddev", (int)sqrt(bacc::variance(deadline_timer_verification.samples))) \
-         ("t", deadline_timer_verification.timer_overhead)
-
-      if(deadline_timer_verification.use_deadline_timer) {
-         struct sigaction act;
-         act.sa_handler = timer_expired;
-         sigemptyset(&act.sa_mask);
-         act.sa_flags = 0;
-         if(sigaction(SIGALRM, &act, NULL) == 0) {
-            ilog("Using ${t}us deadline timer for checktime: " TIMER_STATS_FORMAT, TIMER_STATS);
-            return;
-         }
-      }
-
-      wlog("Using polled checktime; deadline timer too inaccurate: " TIMER_STATS_FORMAT, TIMER_STATS);
-      deadline_timer_verification.use_deadline_timer = false; //set in case sigaction() fails above
+   transaction_checktime_timer::transaction_checktime_timer(platform_timer& timer)
+         : expired(timer.expired), _timer(timer) {
+      expired = 0;
    }
 
-   void deadline_timer::start(fc::time_point tp) {
-      if(tp == fc::time_point::maximum()) {
-         expired = 0;
-         return;
-      }
-      if(!deadline_timer_verification.use_deadline_timer) {
-         expired = 1;
-         return;
-      }
-      microseconds x = tp.time_since_epoch() - fc::time_point::now().time_since_epoch();
-      if(x.count() <= deadline_timer_verification.timer_overhead)
-         expired = 1;
-      else {
-         struct itimerval enable = {{0, 0}, {0, (int)x.count()-deadline_timer_verification.timer_overhead}};
-         expired = 0;
-         if(setitimer(ITIMER_REAL, &enable, NULL))
-            expired = 1;
-      }
+   void transaction_checktime_timer::start(fc::time_point tp) {
+      _timer.start(tp);
    }
 
-   void deadline_timer::stop() {
-      if(expired)
-         return;
-      struct itimerval disable = {{0, 0}, {0, 0}};
-      setitimer(ITIMER_REAL, &disable, NULL);
+   void transaction_checktime_timer::stop() {
+      _timer.stop();
    }
 
-   deadline_timer::~deadline_timer() {
+   void transaction_checktime_timer::set_expiration_callback(void(*func)(void*), void* user) {
+      _timer.set_expiration_callback(func, user);
+   }
+
+   transaction_checktime_timer::~transaction_checktime_timer() {
       stop();
+      _timer.set_expiration_callback(nullptr, nullptr);
    }
-
-   void deadline_timer::timer_expired(int) {
-      expired = 1;
-   }
-   volatile sig_atomic_t deadline_timer::expired = 0;
-   bool deadline_timer::initialized = false;
 
    transaction_context::transaction_context( controller& c,
                                              const signed_transaction& t,
                                              const transaction_id_type& trx_id,
+                                             transaction_checktime_timer&& tmr,
                                              fc::time_point s )
    :control(c)
    ,trx(t)
@@ -156,6 +54,7 @@ namespace bacc = boost::accumulators;
    ,undo_session()
    ,trace(std::make_shared<transaction_trace>())
    ,start(s)
+   ,transaction_timer(std::move(tmr))
    ,net_usage(trace->net_usage)
    ,pseudo_start(s)
    {
@@ -222,8 +121,8 @@ namespace bacc = boost::accumulators;
 
       initial_objective_duration_limit = objective_duration_limit;
 
-      if( billed_cpu_time_us > 0 ) // could also call on explicit_billed_cpu_time but it would be redundant
-         validate_cpu_usage_to_bill( billed_cpu_time_us, false ); // Fail early if the amount to be billed is too high
+      if( explicit_billed_cpu_time )
+         validate_cpu_usage_to_bill( billed_cpu_time_us, std::numeric_limits<int64_t>::max(), false ); // Fail early if the amount to be billed is too high
 
       // Record accounts to be billed for network and CPU usage
       if( control.is_builtin_activated(builtin_protocol_feature_t::only_bill_first_authorizer) ) {
@@ -273,6 +172,11 @@ namespace bacc = boost::accumulators;
          deadline_exception_code = billing_timer_exception_code;
       }
 
+      if( !explicit_billed_cpu_time ) {
+         // if account no longer has enough cpu to exec trx, don't try
+         validate_account_cpu_usage( billed_cpu_time_us, account_cpu_limit, true );
+      }
+
       eager_net_limit = (eager_net_limit/8)*8; // Round down to nearest multiple of word size (8 bytes) so check_net_usage can be efficient
 
       if( initial_net_usage > 0 )
@@ -281,9 +185,9 @@ namespace bacc = boost::accumulators;
       checktime(); // Fail early if deadline has already been exceeded
 
       if(control.skip_trx_checks())
-         _deadline_timer.expired = 0;
+         transaction_timer.start(fc::time_point::maximum());
       else
-         _deadline_timer.start(_deadline);
+         transaction_timer.start(_deadline);
 
       is_initialized = true;
    }
@@ -431,7 +335,7 @@ namespace bacc = boost::accumulators;
 
       update_billed_cpu_time( now );
 
-      validate_cpu_usage_to_bill( billed_cpu_time_us );
+      validate_cpu_usage_to_bill( billed_cpu_time_us, account_cpu_limit, true );
 
       rl.add_transaction_usage( bill_to_accounts, static_cast<uint64_t>(billed_cpu_time_us), net_usage,
                                 block_timestamp_type(control.pending_block_time()).slot ); // Should never fail
@@ -466,35 +370,34 @@ namespace bacc = boost::accumulators;
    }
 
    void transaction_context::checktime()const {
-      if(BOOST_LIKELY(_deadline_timer.expired == false))
+      if(BOOST_LIKELY(transaction_timer.expired == false))
          return;
+
       auto now = fc::time_point::now();
-      if( BOOST_UNLIKELY( now > _deadline ) ) {
-         // edump((now-start)(now-pseudo_start));
-         if( explicit_billed_cpu_time || deadline_exception_code == deadline_exception::code_value ) {
-            EOS_THROW( deadline_exception, "deadline exceeded", ("now", now)("deadline", _deadline)("start", start) );
-         } else if( deadline_exception_code == block_cpu_usage_exceeded::code_value ) {
-            EOS_THROW( block_cpu_usage_exceeded,
-                        "not enough time left in block to complete executing transaction",
-                        ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
-         } else if( deadline_exception_code == tx_cpu_usage_exceeded::code_value ) {
-            if (cpu_limit_due_to_greylist) {
-               EOS_THROW( greylist_cpu_usage_exceeded,
-                        "greylisted transaction was executing for too long",
-                        ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
-            } else {
-               EOS_THROW( tx_cpu_usage_exceeded,
-                        "transaction was executing for too long",
-                        ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
-            }
-         } else if( deadline_exception_code == leeway_deadline_exception::code_value ) {
-            EOS_THROW( leeway_deadline_exception,
-                        "the transaction was unable to complete by deadline, "
-                        "but it is possible it could have succeeded if it were allowed to run to completion",
-                        ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
+      if( explicit_billed_cpu_time || deadline_exception_code == deadline_exception::code_value ) {
+         EOS_THROW( deadline_exception, "deadline exceeded ${billing_timer}us",
+                     ("billing_timer", now - pseudo_start)("now", now)("deadline", _deadline)("start", start) );
+      } else if( deadline_exception_code == block_cpu_usage_exceeded::code_value ) {
+         EOS_THROW( block_cpu_usage_exceeded,
+                     "not enough time left in block to complete executing transaction ${billing_timer}us",
+                     ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
+      } else if( deadline_exception_code == tx_cpu_usage_exceeded::code_value ) {
+         if (cpu_limit_due_to_greylist) {
+            EOS_THROW( greylist_cpu_usage_exceeded,
+                     "greylisted transaction was executing for too long ${billing_timer}us",
+                     ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
+         } else {
+            EOS_THROW( tx_cpu_usage_exceeded,
+                     "transaction was executing for too long ${billing_timer}us",
+                     ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
          }
-         EOS_ASSERT( false,  transaction_exception, "unexpected deadline exception code" );
+      } else if( deadline_exception_code == leeway_deadline_exception::code_value ) {
+         EOS_THROW( leeway_deadline_exception,
+                     "the transaction was unable to complete by deadline, "
+                     "but it is possible it could have succeeded if it were allowed to run to completion ${billing_timer}",
+                     ("now", now)("deadline", _deadline)("start", start)("billing_timer", now - pseudo_start) );
       }
+      EOS_ASSERT( false,  transaction_exception, "unexpected deadline exception code ${code}", ("code", deadline_exception_code) );
    }
 
    void transaction_context::pause_billing_timer() {
@@ -504,7 +407,7 @@ namespace bacc = boost::accumulators;
       billed_time = now - pseudo_start;
       deadline_exception_code = deadline_exception::code_value; // Other timeout exceptions cannot be thrown while billable timer is paused.
       pseudo_start = fc::time_point();
-      _deadline_timer.stop();
+      transaction_timer.stop();
    }
 
    void transaction_context::resume_billing_timer() {
@@ -519,10 +422,10 @@ namespace bacc = boost::accumulators;
          _deadline = deadline;
          deadline_exception_code = deadline_exception::code_value;
       }
-      _deadline_timer.start(_deadline);
+      transaction_timer.start(_deadline);
    }
 
-   void transaction_context::validate_cpu_usage_to_bill( int64_t billed_us, bool check_minimum )const {
+   void transaction_context::validate_cpu_usage_to_bill( int64_t billed_us, int64_t account_cpu_limit, bool check_minimum )const {
       if (!control.skip_trx_checks()) {
          if( check_minimum ) {
             const auto& cfg = control.get_global_properties().configuration;
@@ -532,25 +435,35 @@ namespace bacc = boost::accumulators;
                       );
          }
 
-         if( billing_timer_exception_code == block_cpu_usage_exceeded::code_value ) {
+         validate_account_cpu_usage( billed_us, account_cpu_limit, false );
+      }
+   }
+
+   void transaction_context::validate_account_cpu_usage( int64_t billed_us, int64_t account_cpu_limit, bool estimate )const {
+      if( (billed_us > 0) && !control.skip_trx_checks() ) {
+         const bool cpu_limited_by_account = (account_cpu_limit <= objective_duration_limit.count());
+
+         if( !cpu_limited_by_account && (billing_timer_exception_code == block_cpu_usage_exceeded::code_value) ) {
             EOS_ASSERT( billed_us <= objective_duration_limit.count(),
                         block_cpu_usage_exceeded,
-                        "billed CPU time (${billed} us) is greater than the billable CPU time left in the block (${billable} us)",
-                        ("billed", billed_us)("billable", objective_duration_limit.count())
-                      );
+                        "${desc} CPU time (${billed} us) is greater than the billable CPU time left in the block (${billable} us)",
+                        ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", objective_duration_limit.count() )
+            );
          } else {
-            if (cpu_limit_due_to_greylist) {
-               EOS_ASSERT( billed_us <= objective_duration_limit.count(),
+            if( cpu_limit_due_to_greylist && cpu_limited_by_account ) {
+               EOS_ASSERT( billed_us <= account_cpu_limit,
                            greylist_cpu_usage_exceeded,
-                           "billed CPU time (${billed} us) is greater than the maximum greylisted billable CPU time for the transaction (${billable} us)",
-                           ("billed", billed_us)("billable", objective_duration_limit.count())
+                           "${desc} CPU time (${billed} us) is greater than the maximum greylisted billable CPU time for the transaction (${billable} us)",
+                           ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", account_cpu_limit )
                );
             } else {
-               EOS_ASSERT( billed_us <= objective_duration_limit.count(),
+               // exceeds trx.max_cpu_usage_ms or cfg.max_transaction_cpu_usage if objective_duration_limit is greater
+               const int64_t cpu_limit = (cpu_limited_by_account ? account_cpu_limit : objective_duration_limit.count());
+               EOS_ASSERT( billed_us <= cpu_limit,
                            tx_cpu_usage_exceeded,
-                           "billed CPU time (${billed} us) is greater than the maximum billable CPU time for the transaction (${billable} us)",
-                           ("billed", billed_us)("billable", objective_duration_limit.count())
-                        );
+                           "${desc} CPU time (${billed} us) is greater than the maximum billable CPU time for the transaction (${billable} us)",
+                           ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", cpu_limit )
+               );
             }
          }
       }
@@ -583,19 +496,31 @@ namespace bacc = boost::accumulators;
       int64_t account_cpu_limit = large_number_no_overflow;
       bool greylisted_net = false;
       bool greylisted_cpu = false;
+
+      uint32_t specified_greylist_limit = control.get_greylist_limit();
       for( const auto& a : bill_to_accounts ) {
-         bool elastic = force_elastic_limits || !(control.is_producing_block() && control.is_resource_greylisted(a));
-         auto net_limit = rl.get_account_net_limit(a, elastic);
+         uint32_t greylist_limit = config::maximum_elastic_resource_multiplier;
+         if( !force_elastic_limits && control.is_producing_block() ) {
+            if( control.is_resource_greylisted(a) ) {
+               greylist_limit = 1;
+            } else {
+               greylist_limit = specified_greylist_limit;
+            }
+         }
+         auto [net_limit, net_was_greylisted] = rl.get_account_net_limit(a, greylist_limit);
          if( net_limit >= 0 ) {
             account_net_limit = std::min( account_net_limit, net_limit );
-            if (!elastic) greylisted_net = true;
+            greylisted_net |= net_was_greylisted;
          }
-         auto cpu_limit = rl.get_account_cpu_limit(a, elastic);
+         auto [cpu_limit, cpu_was_greylisted] = rl.get_account_cpu_limit(a, greylist_limit);
          if( cpu_limit >= 0 ) {
             account_cpu_limit = std::min( account_cpu_limit, cpu_limit );
-            if (!elastic) greylisted_cpu = true;
+            greylisted_cpu |= cpu_was_greylisted;
          }
       }
+
+      EOS_ASSERT( (!force_elastic_limits && control.is_producing_block()) || (!greylisted_cpu && !greylisted_net),
+                  transaction_exception, "greylisted when not producing block" );
 
       return std::make_tuple(account_net_limit, account_cpu_limit, greylisted_net, greylisted_cpu);
    }
@@ -736,7 +661,7 @@ namespace bacc = boost::accumulators;
             EOS_ASSERT( actor  != nullptr, transaction_exception,
                         "action's authorizing actor '${account}' does not exist", ("account", auth.actor) );
             EOS_ASSERT( auth_manager.find_permission(auth) != nullptr, transaction_exception,
-                        "action's authorizations include a non-existent permission: {permission}",
+                        "action's authorizations include a non-existent permission: ${permission}",
                         ("permission", auth) );
             if( enforce_actor_whitelist_blacklist )
                actors.insert( auth.actor );

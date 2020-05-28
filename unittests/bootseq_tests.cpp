@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE.txt
- */
 #include <eosio/chain/abi_serializer.hpp>
 #include <eosio/testing/tester.hpp>
 
@@ -82,13 +78,13 @@ public:
       const auto& accnt = control->db().get<account_object,by_name>( config::system_account_name );
       abi_def abi;
       BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi), true);
-      abi_ser.set_abi(abi, abi_serializer_max_time);
+      abi_ser.set_abi(abi, abi_serializer::create_yield_function( abi_serializer_max_time ));
    }
 
    fc::variant get_global_state() {
       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global), N(global) );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state", data, abi_serializer_max_time );
+      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state", data, abi_serializer::create_yield_function( abi_serializer_max_time ) );
    }
 
     auto buyram( name payer, name receiver, asset ram ) {
@@ -178,7 +174,7 @@ public:
            const auto& accnt = control->db().get<account_object,by_name>( account );
            abi_def abi_definition;
            BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
-           abi_ser.set_abi(abi_definition, abi_serializer_max_time);
+           abi_ser.set_abi(abi_definition, abi_serializer::create_yield_function( abi_serializer_max_time ));
         }
         produce_blocks();
     }
@@ -286,7 +282,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         auto active_schedule = control->head_block_state()->active_schedule;
         BOOST_TEST(active_schedule.producers.size() == 1u);
-        BOOST_TEST(active_schedule.producers.front().producer_name == "eosio");
+        BOOST_TEST(active_schedule.producers.front().producer_name == name("eosio"));
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days
@@ -301,27 +297,27 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         active_schedule = control->head_block_state()->active_schedule;
         BOOST_REQUIRE(active_schedule.producers.size() == 21);
-        BOOST_TEST(active_schedule.producers.at(0).producer_name == "proda");
-        BOOST_TEST(active_schedule.producers.at(1).producer_name == "prodb");
-        BOOST_TEST(active_schedule.producers.at(2).producer_name == "prodc");
-        BOOST_TEST(active_schedule.producers.at(3).producer_name == "prodd");
-        BOOST_TEST(active_schedule.producers.at(4).producer_name == "prode");
-        BOOST_TEST(active_schedule.producers.at(5).producer_name == "prodf");
-        BOOST_TEST(active_schedule.producers.at(6).producer_name == "prodg");
-        BOOST_TEST(active_schedule.producers.at(7).producer_name == "prodh");
-        BOOST_TEST(active_schedule.producers.at(8).producer_name == "prodi");
-        BOOST_TEST(active_schedule.producers.at(9).producer_name == "prodj");
-        BOOST_TEST(active_schedule.producers.at(10).producer_name == "prodk");
-        BOOST_TEST(active_schedule.producers.at(11).producer_name == "prodl");
-        BOOST_TEST(active_schedule.producers.at(12).producer_name == "prodm");
-        BOOST_TEST(active_schedule.producers.at(13).producer_name == "prodn");
-        BOOST_TEST(active_schedule.producers.at(14).producer_name == "prodo");
-        BOOST_TEST(active_schedule.producers.at(15).producer_name == "prodp");
-        BOOST_TEST(active_schedule.producers.at(16).producer_name == "prodq");
-        BOOST_TEST(active_schedule.producers.at(17).producer_name == "prodr");
-        BOOST_TEST(active_schedule.producers.at(18).producer_name == "prods");
-        BOOST_TEST(active_schedule.producers.at(19).producer_name == "prodt");
-        BOOST_TEST(active_schedule.producers.at(20).producer_name == "produ");
+        BOOST_TEST(active_schedule.producers.at( 0).producer_name == name("proda"));
+        BOOST_TEST(active_schedule.producers.at( 1).producer_name == name("prodb"));
+        BOOST_TEST(active_schedule.producers.at( 2).producer_name == name("prodc"));
+        BOOST_TEST(active_schedule.producers.at( 3).producer_name == name("prodd"));
+        BOOST_TEST(active_schedule.producers.at( 4).producer_name == name("prode"));
+        BOOST_TEST(active_schedule.producers.at( 5).producer_name == name("prodf"));
+        BOOST_TEST(active_schedule.producers.at( 6).producer_name == name("prodg"));
+        BOOST_TEST(active_schedule.producers.at( 7).producer_name == name("prodh"));
+        BOOST_TEST(active_schedule.producers.at( 8).producer_name == name("prodi"));
+        BOOST_TEST(active_schedule.producers.at( 9).producer_name == name("prodj"));
+        BOOST_TEST(active_schedule.producers.at(10).producer_name == name("prodk"));
+        BOOST_TEST(active_schedule.producers.at(11).producer_name == name("prodl"));
+        BOOST_TEST(active_schedule.producers.at(12).producer_name == name("prodm"));
+        BOOST_TEST(active_schedule.producers.at(13).producer_name == name("prodn"));
+        BOOST_TEST(active_schedule.producers.at(14).producer_name == name("prodo"));
+        BOOST_TEST(active_schedule.producers.at(15).producer_name == name("prodp"));
+        BOOST_TEST(active_schedule.producers.at(16).producer_name == name("prodq"));
+        BOOST_TEST(active_schedule.producers.at(17).producer_name == name("prodr"));
+        BOOST_TEST(active_schedule.producers.at(18).producer_name == name("prods"));
+        BOOST_TEST(active_schedule.producers.at(19).producer_name == name("prodt"));
+        BOOST_TEST(active_schedule.producers.at(20).producer_name == name("produ"));
 
         // Spend some time so the producer pay pool is filled by the inflation rate
         produce_min_num_of_blocks_to_spend_time_wo_inactive_prod(fc::seconds(30 * 24 * 3600)); // 30 days

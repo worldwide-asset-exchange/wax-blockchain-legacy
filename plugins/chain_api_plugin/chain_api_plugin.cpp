@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <eosio/chain_api_plugin/chain_api_plugin.hpp>
 #include <eosio/chain/exceptions.hpp>
 
@@ -83,7 +79,8 @@ void chain_api_plugin::plugin_startup() {
    ro_api.set_shorten_abi_errors( !_http_plugin.verbose_errors() );
 
    _http_plugin.add_api({
-      CHAIN_RO_CALL(get_info, 200l),
+      CHAIN_RO_CALL(get_info, 200)}, appbase::priority::medium_high);
+   _http_plugin.add_api({
       CHAIN_RO_CALL(get_activated_protocol_features, 200),
       CHAIN_RO_CALL(get_block, 200),
       CHAIN_RO_CALL(get_block_header_state, 200),

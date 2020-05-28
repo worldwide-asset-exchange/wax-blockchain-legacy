@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <eosio/net_api_plugin/net_api_plugin.hpp>
 #include <eosio/chain/exceptions.hpp>
 #include <eosio/chain/transaction.hpp>
@@ -79,7 +75,7 @@ void net_api_plugin::plugin_startup() {
             INVOKE_R_V(net_mgr, connections), 201),
     //   CALL(net, net_mgr, open,
     //        INVOKE_V_R(net_mgr, open, std::string), 200),
-   });
+   }, appbase::priority::medium);
 }
 
 void net_api_plugin::plugin_initialize(const variables_map& options) {

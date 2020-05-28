@@ -23,9 +23,9 @@
 #!/usr/bin/env bash
 
 CDT_VERSION=1.6.1
-EOS_VERSION=1.8.1
-WAX_SYSTEM_CONTRACTS=wax-1.7.0-1.0.0
-WAX_DEV_DOCKER=wax-$CDT_VERSION-1.0.0
+EOS_VERSION=1.8.4
+WAX_SYSTEM_CONTRACTS=wax-1.7.0-1.2.0
+WAX_DEV_DOCKER=wax-$CDT_VERSION-1.2.0
 
 # Get/prepare docker images
 docker pull waxteam/dev:$WAX_DEV_DOCKER
