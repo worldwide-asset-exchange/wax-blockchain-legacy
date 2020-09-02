@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #pragma once
 #include <appbase/application.hpp>
 #include <fc/exception/exception.hpp>
@@ -79,9 +75,16 @@ namespace eosio {
         void plugin_initialize(const variables_map& options);
         void plugin_startup();
         void plugin_shutdown();
+        void handle_sighup() override;
 
-        void add_handler(const string& url, const url_handler&);
-        void add_api(const api_description& api) {
+        void add_handler(const string& url, const url_handler&, int priority = appbase::priority::medium_low);
+        void add_api(const api_description& api, int priority = appbase::priority::medium_low) {
+           for (const auto& call : api)
+              add_handler(call.first, call.second, priority);
+        }
+
+        void add_async_handler(const string& url, const url_handler& handler);
+        void add_async_api(const api_description& api) {
            for (const auto& call : api)
               add_handler(call.first, call.second);
         }
@@ -100,26 +103,29 @@ namespace eosio {
 
         get_supported_apis_result get_supported_apis()const;
 
-      private:
-        std::unique_ptr<class http_plugin_impl> my;
+        /// @return the configured http-max-response-time-ms
+        fc::microseconds get_max_response_time()const;
+
+   private:
+        std::shared_ptr<class http_plugin_impl> my;
    };
 
    /**
     * @brief Structure used to create JSON error responses
     */
    struct error_results {
-      uint16_t code;
+      uint16_t code{};
       string message;
 
       struct error_info {
-         int64_t code;
+         int64_t code{};
          string name;
          string what;
 
          struct error_detail {
             string message;
             string file;
-            uint64_t line_number;
+            uint64_t line_number{};
             string method;
          };
 

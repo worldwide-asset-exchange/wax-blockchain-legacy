@@ -1,21 +1,32 @@
 #pragma once
 #include <eosio/chain/controller.hpp>
 #include <eosio/chain/trace.hpp>
+#include <eosio/chain/platform_timer.hpp>
 #include <signal.h>
 
 namespace eosio { namespace chain {
 
-   struct deadline_timer {
-         deadline_timer();
-         ~deadline_timer();
+   struct transaction_checktime_timer {
+      public:
+         transaction_checktime_timer() = delete;
+         transaction_checktime_timer(const transaction_checktime_timer&) = delete;
+         transaction_checktime_timer(transaction_checktime_timer&&) = default;
+         ~transaction_checktime_timer();
 
          void start(fc::time_point tp);
          void stop();
 
-         static volatile sig_atomic_t expired;
+         /* Sets a callback for when timer expires. Be aware this could might fire from a signal handling context and/or
+            on any particular thread. Only a single callback can be registered at once; trying to register more will
+            result in an exception. Use nullptr to disable a previously set callback. */
+         void set_expiration_callback(void(*func)(void*), void* user);
+
+         std::atomic_bool& expired;
       private:
-         static void timer_expired(int);
-         static bool initialized;
+         platform_timer& _timer;
+
+         transaction_checktime_timer(platform_timer& timer);
+         friend controller_impl;
    };
 
    class transaction_context {
@@ -27,6 +38,7 @@ namespace eosio { namespace chain {
          transaction_context( controller& c,
                               const signed_transaction& t,
                               const transaction_id_type& trx_id,
+                              transaction_checktime_timer&& timer,
                               fc::time_point start = fc::time_point::now() );
 
          void init_for_implicit_trx( uint64_t initial_net_usage = 0 );
@@ -84,7 +96,8 @@ namespace eosio { namespace chain {
          void schedule_transaction();
          void record_transaction( const transaction_id_type& id, fc::time_point_sec expire );
 
-         void validate_cpu_usage_to_bill( int64_t u, bool check_minimum = true )const;
+         void validate_cpu_usage_to_bill( int64_t billed_us, int64_t account_cpu_limit, bool check_minimum )const;
+         void validate_account_cpu_usage( int64_t billed_us, int64_t account_cpu_limit, bool estimate )const;
 
          void disallow_transaction_extensions( const char* error_msg )const;
 
@@ -114,9 +127,11 @@ namespace eosio { namespace chain {
          bool                          enforce_whiteblacklist = true;
 
          fc::time_point                deadline = fc::time_point::maximum();
-         fc::microseconds              leeway = fc::microseconds(3000);
+         fc::microseconds              leeway = fc::microseconds( config::default_subjective_cpu_leeway_us );
          int64_t                       billed_cpu_time_us = 0;
          bool                          explicit_billed_cpu_time = false;
+
+         transaction_checktime_timer   transaction_timer;
 
       private:
          bool                          is_initialized = false;
@@ -138,8 +153,6 @@ namespace eosio { namespace chain {
          fc::time_point                pseudo_start;
          fc::microseconds              billed_time;
          fc::microseconds              billing_timer_duration_limit;
-
-         deadline_timer                _deadline_timer;
    };
 
 } }

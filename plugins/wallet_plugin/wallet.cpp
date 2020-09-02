@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <eosio/wallet_plugin/wallet.hpp>
 
 #include <algorithm>
@@ -187,8 +183,8 @@ public:
       else
          EOS_THROW(chain::unsupported_key_type_exception, "Key type \"${kt}\" not supported by software wallet", ("kt", key_type));
 
-      import_key((string)priv_key);
-      return (string)priv_key.get_public_key();
+      import_key(priv_key.to_string());
+      return priv_key.get_public_key().to_string();
    }
 
    bool load_wallet_file(string wallet_filename = "")

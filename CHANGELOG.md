@@ -7,6 +7,7 @@ BREAKING CHANGES:
 FEATURES:
 
 IMPROVEMENTS:
+- Update wax peers for mainnet example
 
 BUG FIXES:
 

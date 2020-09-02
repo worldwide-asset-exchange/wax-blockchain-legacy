@@ -1,7 +1,3 @@
-/**
- *  @file
- *  @copyright defined in eos/LICENSE
- */
 #include <algorithm>
 #include <vector>
 #include <iterator>
@@ -35,13 +31,13 @@ fc::microseconds max_serialization_time = fc::seconds(1); // some test machines 
 // verify that round trip conversion, via bytes, reproduces the exact same data
 fc::variant verify_byte_round_trip_conversion( const abi_serializer& abis, const type_name& type, const fc::variant& var )
 {
-   auto bytes = abis.variant_to_binary(type, var, max_serialization_time);
+   auto bytes = abis.variant_to_binary(type, var, abi_serializer::create_yield_function( max_serialization_time ));
 
-   auto var2 = abis.binary_to_variant(type, bytes, max_serialization_time);
+   auto var2 = abis.binary_to_variant(type, bytes, abi_serializer::create_yield_function( max_serialization_time ));
 
-   std::string r = fc::json::to_string(var2);
+   std::string r = fc::json::to_string(var2, fc::time_point::now() + max_serialization_time);
 
-   auto bytes2 = abis.variant_to_binary(type, var2, max_serialization_time);
+   auto bytes2 = abis.variant_to_binary(type, var2, abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_TEST( fc::to_hex(bytes) == fc::to_hex(bytes2) );
 
@@ -51,11 +47,11 @@ fc::variant verify_byte_round_trip_conversion( const abi_serializer& abis, const
 void verify_round_trip_conversion( const abi_serializer& abis, const type_name& type, const std::string& json, const std::string& hex, const std::string& expected_json )
 {
    auto var = fc::json::from_string(json);
-   auto bytes = abis.variant_to_binary(type, var, max_serialization_time);
+   auto bytes = abis.variant_to_binary(type, var, abi_serializer::create_yield_function( max_serialization_time ));
    BOOST_REQUIRE_EQUAL(fc::to_hex(bytes), hex);
-   auto var2 = abis.binary_to_variant(type, bytes, max_serialization_time);
-   BOOST_REQUIRE_EQUAL(fc::json::to_string(var2), expected_json);
-   auto bytes2 = abis.variant_to_binary(type, var2, max_serialization_time);
+   auto var2 = abis.binary_to_variant(type, bytes, abi_serializer::create_yield_function( max_serialization_time ));
+   BOOST_REQUIRE_EQUAL(fc::json::to_string(var2, fc::time_point::now() + max_serialization_time), expected_json);
+   auto bytes2 = abis.variant_to_binary(type, var2, abi_serializer::create_yield_function( max_serialization_time ));
    BOOST_REQUIRE_EQUAL(fc::to_hex(bytes2), hex);
 }
 
@@ -67,7 +63,7 @@ void verify_round_trip_conversion( const abi_serializer& abis, const type_name& 
 auto get_resolver(const abi_def& abi = abi_def())
 {
    return [&abi](const account_name &name) -> optional<abi_serializer> {
-      return abi_serializer(eosio_contract_abi(abi), max_serialization_time);
+      return abi_serializer(eosio_contract_abi(abi), abi_serializer::create_yield_function( max_serialization_time ));
    };
 }
 
@@ -76,18 +72,18 @@ template<typename T>
 fc::variant verify_type_round_trip_conversion( const abi_serializer& abis, const type_name& type, const fc::variant& var )
 { try {
 
-   auto bytes = abis.variant_to_binary(type, var, max_serialization_time);
+   auto bytes = abis.variant_to_binary(type, var, abi_serializer::create_yield_function( max_serialization_time ));
 
    T obj;
-   abi_serializer::from_variant(var, obj, get_resolver(), max_serialization_time);
+   abi_serializer::from_variant(var, obj, get_resolver(), abi_serializer::create_yield_function( max_serialization_time ));
 
    fc::variant var2;
-   abi_serializer::to_variant(obj, var2, get_resolver(), max_serialization_time);
+   abi_serializer::to_variant(obj, var2, get_resolver(), abi_serializer::create_yield_function( max_serialization_time ));
 
-   std::string r = fc::json::to_string(var2);
+   std::string r = fc::json::to_string(var2, fc::time_point::now() + max_serialization_time);
 
 
-   auto bytes2 = abis.variant_to_binary(type, var2, max_serialization_time);
+   auto bytes2 = abis.variant_to_binary(type, var2, abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_TEST( fc::to_hex(bytes) == fc::to_hex(bytes2) );
 
@@ -519,7 +515,7 @@ BOOST_AUTO_TEST_CASE(uint_types)
 
    auto abi = fc::json::from_string(currency_abi).as<abi_def>();
 
-   abi_serializer abis(eosio_contract_abi(abi), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi), abi_serializer::create_yield_function( max_serialization_time ));
 
    const char* test_data = R"=====(
    {
@@ -532,7 +528,7 @@ BOOST_AUTO_TEST_CASE(uint_types)
 
 
    auto var = fc::json::from_string(test_data);
-   verify_byte_round_trip_conversion(abi_serializer{abi, max_serialization_time}, "transfer", var);
+   verify_byte_round_trip_conversion(abi_serializer{abi, abi_serializer::create_yield_function( max_serialization_time )}, "transfer", var);
 
 } FC_LOG_AND_RETHROW() }
 
@@ -542,7 +538,7 @@ BOOST_AUTO_TEST_CASE(general)
 
    auto abi = eosio_contract_abi(fc::json::from_string(my_abi).as<abi_def>());
 
-   abi_serializer abis(abi, max_serialization_time);
+   abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time ));
 
    const char *my_other = R"=====(
     {
@@ -741,7 +737,7 @@ BOOST_AUTO_TEST_CASE(general)
    )=====";
 
    auto var = fc::json::from_string(my_other);
-   verify_byte_round_trip_conversion(abi_serializer{abi, max_serialization_time}, "A", var);
+   verify_byte_round_trip_conversion(abi_serializer{abi, abi_serializer::create_yield_function( max_serialization_time )}, "A", var);
 
 } FC_LOG_AND_RETHROW() }
 
@@ -792,18 +788,18 @@ BOOST_AUTO_TEST_CASE(abi_cycle)
    auto is_assert_exception = [](const auto& e) -> bool {
       wlog(e.to_string()); return true;
    };
-   BOOST_CHECK_EXCEPTION( abi_serializer abis(abi, max_serialization_time), duplicate_abi_type_def_exception, is_assert_exception);
+   BOOST_CHECK_EXCEPTION( abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_type_def_exception, is_assert_exception);
 
    abi = fc::json::from_string(struct_cycle_abi).as<abi_def>();
    abi_serializer abis;
-   BOOST_CHECK_EXCEPTION( abis.set_abi(abi, max_serialization_time), abi_circular_def_exception, is_assert_exception );
+   BOOST_CHECK_EXCEPTION( abis.set_abi(abi, abi_serializer::create_yield_function( max_serialization_time )), abi_circular_def_exception, is_assert_exception );
 
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE(linkauth_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_CHECK(true);
    const char* test_data = R"=====(
@@ -818,10 +814,10 @@ BOOST_AUTO_TEST_CASE(linkauth_test)
    auto var = fc::json::from_string(test_data);
 
    auto lauth = var.as<linkauth>();
-   BOOST_TEST("lnkauth.acct" == lauth.account);
-   BOOST_TEST("lnkauth.code" == lauth.code);
-   BOOST_TEST("lnkauth.type" == lauth.type);
-   BOOST_TEST("lnkauth.rqm" == lauth.requirement);
+   BOOST_TEST(name("lnkauth.acct") == lauth.account);
+   BOOST_TEST(name("lnkauth.code") == lauth.code);
+   BOOST_TEST(name("lnkauth.type") == lauth.type);
+   BOOST_TEST(name("lnkauth.rqm") == lauth.requirement);
 
    auto var2 = verify_byte_round_trip_conversion( abis, "linkauth", var );
    auto linkauth2 = var2.as<linkauth>();
@@ -837,7 +833,7 @@ BOOST_AUTO_TEST_CASE(linkauth_test)
 BOOST_AUTO_TEST_CASE(unlinkauth_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_CHECK(true);
    const char* test_data = R"=====(
@@ -851,9 +847,9 @@ BOOST_AUTO_TEST_CASE(unlinkauth_test)
    auto var = fc::json::from_string(test_data);
 
    auto unlauth = var.as<unlinkauth>();
-   BOOST_TEST("lnkauth.acct" == unlauth.account);
-   BOOST_TEST("lnkauth.code" == unlauth.code);
-   BOOST_TEST("lnkauth.type" == unlauth.type);
+   BOOST_TEST(name("lnkauth.acct") == unlauth.account);
+   BOOST_TEST(name("lnkauth.code") == unlauth.code);
+   BOOST_TEST(name("lnkauth.type") == unlauth.type);
 
    auto var2 = verify_byte_round_trip_conversion( abis, "unlinkauth", var );
    auto unlinkauth2 = var2.as<unlinkauth>();
@@ -868,7 +864,7 @@ BOOST_AUTO_TEST_CASE(unlinkauth_test)
 BOOST_AUTO_TEST_CASE(updateauth_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_CHECK(true);
    const char* test_data = R"=====(
@@ -890,23 +886,23 @@ BOOST_AUTO_TEST_CASE(updateauth_test)
    auto var = fc::json::from_string(test_data);
 
    auto updauth = var.as<updateauth>();
-   BOOST_TEST("updauth.acct" == updauth.account);
-   BOOST_TEST("updauth.prm" == updauth.permission);
-   BOOST_TEST("updauth.prnt" == updauth.parent);
+   BOOST_TEST(name("updauth.acct") == updauth.account);
+   BOOST_TEST(name("updauth.prm") == updauth.permission);
+   BOOST_TEST(name("updauth.prnt") == updauth.parent);
    BOOST_TEST(2147483145u == updauth.auth.threshold);
 
    BOOST_TEST_REQUIRE(2u == updauth.auth.keys.size());
-   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == (std::string)updauth.auth.keys[0].key);
+   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == updauth.auth.keys[0].key.to_string());
    BOOST_TEST(57005u == updauth.auth.keys[0].weight);
-   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == (std::string)updauth.auth.keys[1].key);
+   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == updauth.auth.keys[1].key.to_string());
    BOOST_TEST(57605u == updauth.auth.keys[1].weight);
 
    BOOST_TEST_REQUIRE(2u == updauth.auth.accounts.size());
-   BOOST_TEST("prm.acct1" == updauth.auth.accounts[0].permission.actor);
-   BOOST_TEST("prm.prm1" == updauth.auth.accounts[0].permission.permission);
+   BOOST_TEST(name("prm.acct1") == updauth.auth.accounts[0].permission.actor);
+   BOOST_TEST(name("prm.prm1") == updauth.auth.accounts[0].permission.permission);
    BOOST_TEST(53005u == updauth.auth.accounts[0].weight);
-   BOOST_TEST("prm.acct2" == updauth.auth.accounts[1].permission.actor);
-   BOOST_TEST("prm.prm2" == updauth.auth.accounts[1].permission.permission);
+   BOOST_TEST(name("prm.acct2") == updauth.auth.accounts[1].permission.actor);
+   BOOST_TEST(name("prm.prm2") == updauth.auth.accounts[1].permission.permission);
    BOOST_TEST(53405u == updauth.auth.accounts[1].weight);
 
    auto var2 = verify_byte_round_trip_conversion( abis, "updateauth", var );
@@ -938,7 +934,7 @@ BOOST_AUTO_TEST_CASE(updateauth_test)
 BOOST_AUTO_TEST_CASE(deleteauth_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_CHECK(true);
    const char* test_data = R"=====(
@@ -951,8 +947,8 @@ BOOST_AUTO_TEST_CASE(deleteauth_test)
    auto var = fc::json::from_string(test_data);
 
    auto delauth = var.as<deleteauth>();
-   BOOST_TEST("delauth.acct" == delauth.account);
-   BOOST_TEST("delauth.prm" == delauth.permission);
+   BOOST_TEST(name("delauth.acct") == delauth.account);
+   BOOST_TEST(name("delauth.prm") == delauth.permission);
 
    auto var2 = verify_byte_round_trip_conversion( abis, "deleteauth", var );
    auto deleteauth2 = var2.as<deleteauth>();
@@ -966,7 +962,7 @@ BOOST_AUTO_TEST_CASE(deleteauth_test)
 BOOST_AUTO_TEST_CASE(newaccount_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    BOOST_CHECK(true);
    const char* test_data = R"=====(
@@ -994,39 +990,39 @@ BOOST_AUTO_TEST_CASE(newaccount_test)
    auto var = fc::json::from_string(test_data);
 
    auto newacct = var.as<newaccount>();
-   BOOST_TEST("newacct.crtr" == newacct.creator);
-   BOOST_TEST("newacct.name" == newacct.name);
+   BOOST_TEST(name("newacct.crtr") == newacct.creator);
+   BOOST_TEST(name("newacct.name") == newacct.name);
 
    BOOST_TEST(2147483145u == newacct.owner.threshold);
 
    BOOST_TEST_REQUIRE(2u == newacct.owner.keys.size());
-   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == (std::string)newacct.owner.keys[0].key);
+   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == newacct.owner.keys[0].key.to_string());
    BOOST_TEST(57005u == newacct.owner.keys[0].weight);
-   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == (std::string)newacct.owner.keys[1].key);
+   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == newacct.owner.keys[1].key.to_string());
    BOOST_TEST(57605u == newacct.owner.keys[1].weight);
 
    BOOST_TEST_REQUIRE(2u == newacct.owner.accounts.size());
-   BOOST_TEST("prm.acct1" == newacct.owner.accounts[0].permission.actor);
-   BOOST_TEST("prm.prm1" == newacct.owner.accounts[0].permission.permission);
+   BOOST_TEST(name("prm.acct1") == newacct.owner.accounts[0].permission.actor);
+   BOOST_TEST(name("prm.prm1") == newacct.owner.accounts[0].permission.permission);
    BOOST_TEST(53005u == newacct.owner.accounts[0].weight);
-   BOOST_TEST("prm.acct2" == newacct.owner.accounts[1].permission.actor);
-   BOOST_TEST("prm.prm2" == newacct.owner.accounts[1].permission.permission);
+   BOOST_TEST(name("prm.acct2") == newacct.owner.accounts[1].permission.actor);
+   BOOST_TEST(name("prm.prm2") == newacct.owner.accounts[1].permission.permission);
    BOOST_TEST(53405u == newacct.owner.accounts[1].weight);
 
    BOOST_TEST(2146483145u == newacct.active.threshold);
 
    BOOST_TEST_REQUIRE(2u == newacct.active.keys.size());
-   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == (std::string)newacct.active.keys[0].key);
+   BOOST_TEST("EOS65rXebLhtk2aTTzP4e9x1AQZs7c5NNXJp89W8R3HyaA6Zyd4im" == newacct.active.keys[0].key.to_string());
    BOOST_TEST(57005u == newacct.active.keys[0].weight);
-   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == (std::string)newacct.active.keys[1].key);
+   BOOST_TEST("EOS5eVr9TVnqwnUBNwf9kwMTbrHvX5aPyyEG97dz2b2TNeqWRzbJf" == newacct.active.keys[1].key.to_string());
    BOOST_TEST(57605u == newacct.active.keys[1].weight);
 
    BOOST_TEST_REQUIRE(2u == newacct.active.accounts.size());
-   BOOST_TEST("prm.acct1" == newacct.active.accounts[0].permission.actor);
-   BOOST_TEST("prm.prm1" == newacct.active.accounts[0].permission.permission);
+   BOOST_TEST(name("prm.acct1") == newacct.active.accounts[0].permission.actor);
+   BOOST_TEST(name("prm.prm1") == newacct.active.accounts[0].permission.permission);
    BOOST_TEST(53005u == newacct.active.accounts[0].weight);
-   BOOST_TEST("prm.acct2" == newacct.active.accounts[1].permission.actor);
-   BOOST_TEST("prm.prm2" == newacct.active.accounts[1].permission.permission);
+   BOOST_TEST(name("prm.acct2") == newacct.active.accounts[1].permission.actor);
+   BOOST_TEST(name("prm.prm2") == newacct.active.accounts[1].permission.permission);
    BOOST_TEST(53405u == newacct.active.accounts[1].weight);
 
 
@@ -1076,7 +1072,7 @@ BOOST_AUTO_TEST_CASE(newaccount_test)
 BOOST_AUTO_TEST_CASE(setcode_test)
 { try {
 
-   abi_serializer abis(eosio_contract_abi(abi_def()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(abi_def()), abi_serializer::create_yield_function( max_serialization_time ));
 
    const char* test_data = R"=====(
    {
@@ -1090,7 +1086,7 @@ BOOST_AUTO_TEST_CASE(setcode_test)
    auto var = fc::json::from_string(test_data);
 
    auto set_code = var.as<setcode>();
-   BOOST_TEST("setcode.acc" == set_code.account);
+   BOOST_TEST(name("setcode.acc") == set_code.account);
    BOOST_TEST(0 == set_code.vmtype);
    BOOST_TEST(0 == set_code.vmversion);
    BOOST_TEST("0061736d0100000001390a60037e7e7f017f60047e7e7f7f017f60017e0060057e7e7e7f7f" == fc::to_hex(set_code.code.data(), set_code.code.size()));
@@ -1239,7 +1235,7 @@ BOOST_AUTO_TEST_CASE(setabi_test)
 
    auto v = fc::json::from_string(abi_def_abi);
 
-   abi_serializer abis(eosio_contract_abi(v.as<abi_def>()), max_serialization_time);
+   abi_serializer abis(eosio_contract_abi(v.as<abi_def>()), abi_serializer::create_yield_function( max_serialization_time ));
 
    const char* abi_string = R"=====(
       {
@@ -1335,11 +1331,11 @@ BOOST_AUTO_TEST_CASE(setabi_test)
    BOOST_TEST("uint64" == abi.structs[2].fields[1].type);
 
    BOOST_TEST_REQUIRE(1u == abi.actions.size());
-   BOOST_TEST("transfer" == abi.actions[0].name);
+   BOOST_TEST(name("transfer") == abi.actions[0].name);
    BOOST_TEST("transfer" == abi.actions[0].type);
 
    BOOST_TEST_REQUIRE(1u == abi.tables.size());
-   BOOST_TEST("account" == abi.tables[0].name);
+   BOOST_TEST(name("account") == abi.tables[0].name);
    BOOST_TEST("account" == abi.tables[0].type);
    BOOST_TEST("i64" == abi.tables[0].index_type);
    BOOST_TEST_REQUIRE(1u == abi.tables[0].key_names.size());
@@ -1446,20 +1442,20 @@ struct action2 {
 template<typename T>
 void verify_action_equal(const chain::action& exp, const chain::action& act)
 {
-   BOOST_REQUIRE_EQUAL((std::string)exp.account, (std::string)act.account);
-   BOOST_REQUIRE_EQUAL((std::string)exp.name, (std::string)act.name);
+   BOOST_REQUIRE_EQUAL(exp.account.to_string(), act.account.to_string());
+   BOOST_REQUIRE_EQUAL(exp.name.to_string(), act.name.to_string());
    BOOST_REQUIRE_EQUAL(exp.authorization.size(), act.authorization.size());
    for(unsigned int i = 0; i < exp.authorization.size(); ++i)
    {
-      BOOST_REQUIRE_EQUAL((std::string)exp.authorization[i].actor, (std::string)act.authorization[i].actor);
-      BOOST_REQUIRE_EQUAL((std::string)exp.authorization[i].permission, (std::string)act.authorization[i].permission);
+      BOOST_REQUIRE_EQUAL(exp.authorization[i].actor.to_string(), act.authorization[i].actor.to_string());
+      BOOST_REQUIRE_EQUAL(exp.authorization[i].permission.to_string(), act.authorization[i].permission.to_string());
    }
    BOOST_REQUIRE_EQUAL(exp.data.size(), act.data.size());
    BOOST_REQUIRE(!memcmp(exp.data.data(), act.data.data(), exp.data.size()));
 }
 
 private_key_type get_private_key( name keyname, string role ) {
-   return private_key_type::regenerate<fc::ecc::private_key_shim>(fc::sha256::hash(string(keyname)+role));
+   return private_key_type::regenerate<fc::ecc::private_key_shim>(fc::sha256::hash(keyname.to_string()+role));
 }
 
 public_key_type  get_public_key( name keyname, string role ) {
@@ -1561,10 +1557,10 @@ BOOST_AUTO_TEST_CASE(packed_transaction)
    }
    )=====";
    fc::variant var;
-   abi_serializer::to_variant(packed_txn, var, get_resolver(fc::json::from_string(packed_transaction_abi).as<abi_def>()), max_serialization_time);
+   abi_serializer::to_variant(packed_txn, var, get_resolver(fc::json::from_string(packed_transaction_abi).as<abi_def>()), abi_serializer::create_yield_function( max_serialization_time ));
 
    chain::packed_transaction packed_txn2;
-   abi_serializer::from_variant(var, packed_txn2, get_resolver(fc::json::from_string(packed_transaction_abi).as<abi_def>()), max_serialization_time);
+   abi_serializer::from_variant(var, packed_txn2, get_resolver(fc::json::from_string(packed_transaction_abi).as<abi_def>()), abi_serializer::create_yield_function( max_serialization_time ));
 
    const auto txn2 = packed_txn2.get_transaction();
 
@@ -1639,7 +1635,7 @@ BOOST_AUTO_TEST_CASE(abi_type_repeat)
 
    auto abi = eosio_contract_abi(fc::json::from_string(repeat_abi).as<abi_def>());
    auto is_table_exception = [](fc::exception const & e) -> bool { return e.to_detail_string().find("type already exists") != std::string::npos; };
-   BOOST_CHECK_EXCEPTION( abi_serializer abis(abi, max_serialization_time), duplicate_abi_type_def_exception, is_table_exception );
+   BOOST_CHECK_EXCEPTION( abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_type_def_exception, is_table_exception );
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE(abi_struct_repeat)
@@ -1696,7 +1692,7 @@ BOOST_AUTO_TEST_CASE(abi_struct_repeat)
    )=====";
 
    auto abi = eosio_contract_abi(fc::json::from_string(repeat_abi).as<abi_def>());
-   BOOST_CHECK_THROW( abi_serializer abis(abi, max_serialization_time), duplicate_abi_struct_def_exception );
+   BOOST_CHECK_THROW( abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_struct_def_exception );
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE(abi_action_repeat)
@@ -1756,7 +1752,7 @@ BOOST_AUTO_TEST_CASE(abi_action_repeat)
    )=====";
 
    auto abi = eosio_contract_abi(fc::json::from_string(repeat_abi).as<abi_def>());
-   BOOST_CHECK_THROW( abi_serializer abis(abi, max_serialization_time), duplicate_abi_action_def_exception );
+   BOOST_CHECK_THROW( abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_action_def_exception );
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE(abi_table_repeat)
@@ -1819,7 +1815,7 @@ BOOST_AUTO_TEST_CASE(abi_table_repeat)
    )=====";
 
    auto abi = eosio_contract_abi(fc::json::from_string(repeat_abi).as<abi_def>());
-   BOOST_CHECK_THROW( abi_serializer abis(abi, max_serialization_time), duplicate_abi_table_def_exception );
+   BOOST_CHECK_THROW( abi_serializer abis(abi, abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_table_def_exception );
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE(abi_type_def)
@@ -1858,9 +1854,9 @@ BOOST_AUTO_TEST_CASE(abi_type_def)
    }
    )=====";
 
-   abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), max_serialization_time);
-   BOOST_CHECK(abis.is_type("name", max_serialization_time));
-   BOOST_CHECK(abis.is_type("account_name", max_serialization_time));
+   abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ));
+   BOOST_CHECK(abis.is_type("name", abi_serializer::create_yield_function( max_serialization_time )));
+   BOOST_CHECK(abis.is_type("account_name", abi_serializer::create_yield_function( max_serialization_time )));
 
    const char* test_data = R"=====(
    {
@@ -1915,7 +1911,7 @@ BOOST_AUTO_TEST_CASE(abi_type_loop)
    )=====";
 
    auto is_type_exception = [](fc::exception const & e) -> bool { return e.to_detail_string().find("type already exists") != std::string::npos; };
-   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), max_serialization_time), duplicate_abi_type_def_exception, is_type_exception );
+   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_type_def_exception, is_type_exception );
 
 } FC_LOG_AND_RETHROW() }
 
@@ -1955,8 +1951,8 @@ BOOST_AUTO_TEST_CASE(abi_type_redefine)
    }
    )=====";
 
-   auto is_type_exception = [](fc::exception const & e) -> bool { return e.to_detail_string().find("invalid type") != std::string::npos; };
-   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), max_serialization_time), invalid_type_inside_abi, is_type_exception );
+   auto is_type_exception = [](fc::exception const & e) -> bool { return e.to_detail_string().find("Circular reference in type account_name") != std::string::npos; };
+   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), abi_circular_def_exception, is_type_exception );
 
 } FC_LOG_AND_RETHROW() }
 
@@ -1978,7 +1974,7 @@ BOOST_AUTO_TEST_CASE(abi_type_redefine_to_name)
    )=====";
 
    auto is_type_exception = [](fc::exception const & e) -> bool { return e.to_detail_string().find("type already exists") != std::string::npos; };
-   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), max_serialization_time), duplicate_abi_type_def_exception, is_type_exception );
+   BOOST_CHECK_EXCEPTION( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), duplicate_abi_type_def_exception, is_type_exception );
 
 } FC_LOG_AND_RETHROW() }
 
@@ -2004,7 +2000,7 @@ BOOST_AUTO_TEST_CASE(abi_type_nested_in_vector)
    }
    )=====";
 
-   BOOST_CHECK_THROW( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), max_serialization_time), fc::exception );
+   BOOST_CHECK_THROW( abi_serializer abis(fc::json::from_string(repeat_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), fc::exception );
 
 } FC_LOG_AND_RETHROW() }
 
@@ -2075,7 +2071,7 @@ BOOST_AUTO_TEST_CASE(abi_large_array)
       }
       )=====";
 
-      abi_serializer abis( fc::json::from_string( abi_str ).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string( abi_str ).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
       // indicate a very large array, but don't actually provide a large array
       // curl http://127.0.0.1:8888/v1/chain/abi_bin_to_json -X POST -d '{"code":"eosio", "action":"hi", "binargs":"ffffffff08"}'
       bytes bin = {static_cast<char>(0xff),
@@ -2083,7 +2079,7 @@ BOOST_AUTO_TEST_CASE(abi_large_array)
                    static_cast<char>(0xff),
                    static_cast<char>(0xff),
                    static_cast<char>(0x08)};
-      BOOST_CHECK_THROW( abis.binary_to_variant( "hi[]", bin, max_serialization_time );, fc::exception );
+      BOOST_CHECK_THROW( abis.binary_to_variant( "hi[]", bin, abi_serializer::create_yield_function( max_serialization_time ) );, fc::exception );
 
    } FC_LOG_AND_RETHROW()
 }
@@ -2127,7 +2123,7 @@ BOOST_AUTO_TEST_CASE(abi_is_type_recursion)
       }
       )=====";
 
-      BOOST_CHECK_THROW( abi_serializer abis(fc::json::from_string(abi_str).as<abi_def>(), max_serialization_time), fc::exception );
+      BOOST_CHECK_THROW( abi_serializer abis(fc::json::from_string(abi_str).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), fc::exception );
 
    } FC_LOG_AND_RETHROW()
 }
@@ -2194,10 +2190,10 @@ BOOST_AUTO_TEST_CASE(abi_recursive_structs)
       }
       )=====";
 
-      abi_serializer abis(fc::json::from_string(abi_str).as<abi_def>(), max_serialization_time);
+      abi_serializer abis(fc::json::from_string(abi_str).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ));
       string hi_data = "{\"user\":\"eosio\"}";
-      auto bin = abis.variant_to_binary("hi2", fc::json::from_string(hi_data), max_serialization_time);
-      BOOST_CHECK_THROW( abis.binary_to_variant("hi", bin, max_serialization_time);, fc::exception );
+      auto bin = abis.variant_to_binary("hi2", fc::json::from_string(hi_data), abi_serializer::create_yield_function( max_serialization_time ));
+      BOOST_CHECK_THROW( abis.binary_to_variant("hi", bin, abi_serializer::create_yield_function( max_serialization_time ));, fc::exception );
 
    } FC_LOG_AND_RETHROW()
 }
@@ -2206,9 +2202,9 @@ BOOST_AUTO_TEST_CASE(abi_recursive_structs)
 BOOST_AUTO_TEST_CASE(abi_very_deep_structs)
 {
    try {
-      abi_serializer abis( fc::json::from_string( large_nested_abi ).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string( large_nested_abi ).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
       string hi_data = "{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":{\"f1\":0}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}";
-      BOOST_CHECK_THROW( abis.variant_to_binary( "s98", fc::json::from_string( hi_data ), max_serialization_time ), fc::exception );
+      BOOST_CHECK_THROW( abis.variant_to_binary( "s98", fc::json::from_string( hi_data ), abi_serializer::create_yield_function( max_serialization_time ) ), fc::exception );
    } FC_LOG_AND_RETHROW()
 }
 
@@ -2217,7 +2213,7 @@ BOOST_AUTO_TEST_CASE(abi_very_deep_structs_1ms)
 {
    try {
       BOOST_CHECK_THROW(
-            abi_serializer abis( fc::json::from_string( large_nested_abi ).as<abi_def>(), fc::microseconds( 1 ) ),
+            abi_serializer abis( fc::json::from_string( large_nested_abi ).as<abi_def>(), abi_serializer::create_yield_function( fc::microseconds( 1 ) ) ),
             fc::exception );
    } FC_LOG_AND_RETHROW()
 }
@@ -2226,7 +2222,7 @@ BOOST_AUTO_TEST_CASE(abi_deep_structs_validate)
 {
    try {
       BOOST_CHECK_THROW(
-            abi_serializer abis( fc::json::from_string( deep_nested_abi ).as<abi_def>(), max_serialization_time ),
+            abi_serializer abis( fc::json::from_string( deep_nested_abi ).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) ),
             fc::exception );
    } FC_LOG_AND_RETHROW()
 }
@@ -2273,26 +2269,26 @@ BOOST_AUTO_TEST_CASE(variants)
       // json -> variant -> abi_def -> bin
       auto bin = fc::raw::pack(fc::json::from_string(variant_abi).as<abi_def>());
       // bin -> abi_def -> variant -> abi_def
-      abi_serializer abis(variant(fc::raw::unpack<abi_def>(bin)).as<abi_def>(), max_serialization_time );
+      abi_serializer abis(variant(fc::raw::unpack<abi_def>(bin)).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
       // duplicate variant definition detected
-      BOOST_CHECK_THROW( abi_serializer( fc::json::from_string(duplicate_variant_abi).as<abi_def>(), max_serialization_time ), duplicate_abi_variant_def_exception );
+      BOOST_CHECK_THROW( abi_serializer( fc::json::from_string(duplicate_variant_abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) ), duplicate_abi_variant_def_exception );
 
       // invalid_type_inside_abi
-      BOOST_CHECK_THROW( abi_serializer( fc::json::from_string(variant_abi_invalid_type).as<abi_def>(), max_serialization_time ), invalid_type_inside_abi );
+      BOOST_CHECK_THROW( abi_serializer( fc::json::from_string(variant_abi_invalid_type).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) ), invalid_type_inside_abi );
 
       // expected array containing variant
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(9)"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(9)"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Expected input to be an array of two items while processing variant 'v1'") );
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"([4])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"([4])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Expected input to be an array of two items while processing variant 'v1") );
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"([4, 5])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"([4, 5])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Encountered non-string as first item of input array while processing variant 'v1") );
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["4", 5, 6])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["4", 5, 6])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Expected input to be an array of two items while processing variant 'v1'") );
 
       // type is not valid within this variant
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["int9", 21])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["int9", 21])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Specified type 'int9' in input array is not valid within the variant 'v1'") );
 
       verify_round_trip_conversion(abis, "v1", R"(["int8",21])", "0015");
@@ -2301,6 +2297,57 @@ BOOST_AUTO_TEST_CASE(variants)
       verify_round_trip_conversion(abis, "v1", R"(["int16",4])", "020400");
       verify_round_trip_conversion(abis, "v2", R"(["foo",{"i0":5,"i1":6}])", "000506");
       verify_round_trip_conversion(abis, "v2", R"(["bar",{"i0":5,"i1":6}])", "010506");
+   } FC_LOG_AND_RETHROW()
+}
+
+BOOST_AUTO_TEST_CASE(aliased_variants)
+{
+   using eosio::testing::fc_exception_message_starts_with;
+
+   auto aliased_variant = R"({
+      "version": "eosio::abi/1.1",
+      "types": [
+         { "new_type_name": "foo", "type": "foo_variant" }
+      ],
+      "variants": [
+         {"name": "foo_variant", "types": ["int8", "string"]}
+      ],
+   })";
+
+   try {
+      // round-trip abi through multiple formats
+      // json -> variant -> abi_def -> bin
+      auto bin = fc::raw::pack(fc::json::from_string(aliased_variant).as<abi_def>());
+      // bin -> abi_def -> variant -> abi_def
+      abi_serializer abis(variant(fc::raw::unpack<abi_def>(bin)).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
+
+      verify_round_trip_conversion(abis, "foo", R"(["int8",21])", "0015");
+   } FC_LOG_AND_RETHROW()
+}
+
+BOOST_AUTO_TEST_CASE(variant_of_aliases)
+{
+   using eosio::testing::fc_exception_message_starts_with;
+
+   auto aliased_variant = R"({
+      "version": "eosio::abi/1.1",
+      "types": [
+         { "new_type_name": "foo_0", "type": "int8" },
+         { "new_type_name": "foo_1", "type": "string" }
+      ],
+      "variants": [
+         {"name": "foo", "types": ["foo_0", "foo_1"]}
+      ],
+   })";
+
+   try {
+      // round-trip abi through multiple formats
+      // json -> variant -> abi_def -> bin
+      auto bin = fc::raw::pack(fc::json::from_string(aliased_variant).as<abi_def>());
+      // bin -> abi_def -> variant -> abi_def
+      abi_serializer abis(variant(fc::raw::unpack<abi_def>(bin)).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
+
+      verify_round_trip_conversion(abis, "foo", R"(["foo_0",21])", "0015");
    } FC_LOG_AND_RETHROW()
 }
 
@@ -2329,14 +2376,14 @@ BOOST_AUTO_TEST_CASE(extend)
    //       Such a check is not yet implemented during validation, but it can check during serialization.
 
    try {
-      abi_serializer abis(fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis(fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
       // missing i1
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"({"i0":5})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"({"i0":5})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Missing field 'i1' in input object while processing struct") );
 
       // Unexpected 'a'
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"({"i0":5,"i1":6,"a":[8,9,10]})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"({"i0":5,"i1":6,"a":[8,9,10]})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Unexpected field 'a' found in input object while processing struct") );
 
       verify_round_trip_conversion(abis, "s", R"({"i0":5,"i1":6})", "0506");
@@ -2351,7 +2398,7 @@ BOOST_AUTO_TEST_CASE(extend)
       verify_round_trip_conversion(abis, "s", R"([5,6,7,[8,9,10],null])", "0506070308090a00", R"({"i0":5,"i1":6,"i2":7,"a":[8,9,10],"o":null})");
       verify_round_trip_conversion(abis, "s", R"([5,6,7,[8,9,10],31])", "0506070308090a011f", R"({"i0":5,"i1":6,"i2":7,"a":[8,9,10],"o":31})");
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"i0":1})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"i0":1})"), abi_serializer::create_yield_function( max_serialization_time )),
                              abi_exception, fc_exception_message_starts_with("Encountered field 'i2' without binary extension designation while processing struct") );
 
 
@@ -2361,11 +2408,11 @@ BOOST_AUTO_TEST_CASE(extend)
 BOOST_AUTO_TEST_CASE(version)
 {
    try {
-      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({})").as<abi_def>(), max_serialization_time), unsupported_abi_version_exception );
-      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({"version": ""})").as<abi_def>(), max_serialization_time), unsupported_abi_version_exception );
-      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/9.0"})").as<abi_def>(), max_serialization_time), unsupported_abi_version_exception );
-      abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/1.0"})").as<abi_def>(), max_serialization_time);
-      abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/1.1"})").as<abi_def>(), max_serialization_time);
+      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({})").as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), unsupported_abi_version_exception );
+      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({"version": ""})").as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), unsupported_abi_version_exception );
+      BOOST_CHECK_THROW( abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/9.0"})").as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time )), unsupported_abi_version_exception );
+      abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/1.0"})").as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ));
+      abi_serializer(fc::json::from_string(R"({"version": "eosio::abi/1.1"})").as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ));
    } FC_LOG_AND_RETHROW()
 }
 
@@ -2385,12 +2432,12 @@ BOOST_AUTO_TEST_CASE(abi_serialize_incomplete_json_array)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"([])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"([])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Early end to input array specifying the fields of struct") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"([1,2])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s", fc::json::from_string(R"([1,2])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Early end to input array specifying the fields of struct") );
 
       verify_round_trip_conversion(abis, "s", R"([1,2,3])", "010203", R"({"i0":1,"i1":2,"i2":3})");
@@ -2417,12 +2464,12 @@ BOOST_AUTO_TEST_CASE(abi_serialize_incomplete_json_object)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Missing field 'f0' in input object") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"f0":{"i0":1}})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"f0":{"i0":1}})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_starts_with("Missing field 'i1' in input object") );
 
       verify_round_trip_conversion(abis, "s2", R"({"f0":{"i0":1,"i1":2},"i2":3})", "010203");
@@ -2448,9 +2495,9 @@ BOOST_AUTO_TEST_CASE(abi_serialize_json_mismatching_type)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"f0":1,"i1":2})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2", fc::json::from_string(R"({"f0":1,"i1":2})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Unexpected input encountered while processing struct 's2.f0'") );
 
       verify_round_trip_conversion(abis, "s2", R"({"f0":{"i0":1},"i1":2})", "0102");
@@ -2473,9 +2520,9 @@ BOOST_AUTO_TEST_CASE(abi_serialize_json_empty_name)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      auto bin = abis.variant_to_binary("s1", fc::json::from_string(R"({"":1})"), max_serialization_time);
+      auto bin = abis.variant_to_binary("s1", fc::json::from_string(R"({"":1})"), abi_serializer::create_yield_function( max_serialization_time ));
 
       verify_round_trip_conversion(abis, "s1", R"({"":1})", "01");
 
@@ -2524,37 +2571,37 @@ BOOST_AUTO_TEST_CASE(abi_serialize_detailed_error_messages)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("bar", fc::json::from_string(R"({"f0":{"i0":1},"i2":3})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("bar", fc::json::from_string(R"({"f0":{"i0":1},"i2":3})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's2.f0'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i2":3})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i2":3})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's3'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["s2",{}]})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["s2",{}]})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Specified type 's2' in input array is not valid within the variant 's3.f3'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11},"i2":13}]})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s3", fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11},"i2":13}]})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's3.f3.<variant(1)=bar>.f0'") );
 
       verify_round_trip_conversion(abis, "s3", R"({"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11,"i1":12},"i2":13}]})", "010203010b0c0d");
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s3",{"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11,"i1":12},"i2":13}],"f5":0}])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s3",{"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11,"i1":12},"i2":13}],"f5":0}])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Unexpected field 'f5' found in input object while processing struct 'v1.<variant(0)=s3>'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s4",{"f0":[0,1],"f1":[{"i0":2,"i1":3},{"i1":5}]}])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s4",{"f0":[0,1],"f1":[{"i0":2,"i1":3},{"i1":5}]}])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i0' in input object while processing struct 'v1.<variant(2)=s4>.f1[1]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2[]", fc::json::from_string(R"([{"f0":{"i0":1,"i1":2},"i2":3},{"f0":{"i0":4},"i2":6}])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2[]", fc::json::from_string(R"([{"f0":{"i0":1,"i1":2},"i2":3},{"f0":{"i0":4},"i2":6}])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 'ARRAY[1].f0'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s5", fc::json::from_string(R"({"f0":[["bar",{"f0":{"i0":1,"i1":2},"i2":3}],["foo",{"f0":{"i0":4},"i2":6}]]})"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s5", fc::json::from_string(R"({"f0":[["bar",{"f0":{"i0":1,"i1":2},"i2":3}],["foo",{"f0":{"i0":4},"i2":6}]]})"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's5.f0[1].<variant(0)=foo>.f0'") );
 
       verify_round_trip_conversion( abis, "s1arrayarray", R"([[{"i0":1,"i1":2},{"i0":3,"i1":4}],[{"i0":5,"i1":6},{"i0":7,"i1":8},{"i0":9,"i1":10}]])", "0202010203040305060708090a");
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s1arrayarray", fc::json::from_string(R"([[{"i0":1,"i1":2},{"i0":3,"i1":4}],[{"i0":6,"i1":6},{"i0":7,"i1":8},{"i1":10}]])"), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s1arrayarray", fc::json::from_string(R"([[{"i0":1,"i1":2},{"i0":3,"i1":4}],[{"i0":6,"i1":6},{"i0":7,"i1":8},{"i1":10}]])"), abi_serializer::create_yield_function( max_serialization_time )),
                              pack_exception, fc_exception_message_is("Missing field 'i0' in input object while processing struct 'ARRAY[1][2]'") );
    } FC_LOG_AND_RETHROW()
 }
@@ -2601,40 +2648,40 @@ BOOST_AUTO_TEST_CASE(abi_serialize_short_error_messages)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("bar", fc::json::from_string(R"({"f0":{"i0":1},"i2":3})"), max_serialization_time, true),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("bar", fc::json::from_string(R"({"f0":{"i0":1},"i2":3})"), abi_serializer::create_yield_function( max_serialization_time ), true),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's1'") );
 
       BOOST_CHECK_EXCEPTION( abis.variant_to_binary( "very_very_very_very_very_very_very_very_very_very_long_struct_name_s3",
-                                                     fc::json::from_string(R"({"i0":1,"i2":3})"), max_serialization_time, true ),
+                                                     fc::json::from_string(R"({"i0":1,"i2":3})"), abi_serializer::create_yield_function( max_serialization_time ), true ),
                              pack_exception,
                              fc_exception_message_is("Missing field 'i1' in input object while processing struct 'very_very_very_very_very_very_very_very_very_very_long_...ame_s3'") );
 
       BOOST_CHECK_EXCEPTION( abis.variant_to_binary( "very_very_very_very_very_very_very_very_very_very_long_struct_name_s3",
-                                                     fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["s2",{}]})"), max_serialization_time, true ),
+                                                     fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["s2",{}]})"), abi_serializer::create_yield_function( max_serialization_time ), true ),
                              pack_exception, fc_exception_message_is("Specified type 's2' in input array is not valid within the variant 'v2'") );
 
       BOOST_CHECK_EXCEPTION( abis.variant_to_binary( "very_very_very_very_very_very_very_very_very_very_long_struct_name_s3",
-                                                     fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11},"i2":13}]})"), max_serialization_time, true ),
+                                                     fc::json::from_string(R"({"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11},"i2":13}]})"), abi_serializer::create_yield_function( max_serialization_time ), true ),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's1'") );
 
       BOOST_CHECK_EXCEPTION( abis.variant_to_binary( "v1",
          fc::json::from_string(R"(["very_very_very_very_very_very_very_very_very_very_long_struct_name_s3",{"i0":1,"i1":2,"i2":3,"f3":["bar",{"f0":{"i0":11,"i1":12},"i2":13}],"very_very_very_very_very_very_very_very_very_very_long_field_name_f5":0}])"),
-                                                    max_serialization_time, true ),
+                                                     abi_serializer::create_yield_function( max_serialization_time ), true ),
                              pack_exception,
                              fc_exception_message_is("Unexpected field 'very_very_very_very_very_very_very_very_very_very_long_...ame_f5' found in input object while processing struct 'very_very_very_very_very_very_very_very_very_very_long_...ame_s3'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s4",{"f0":[0,1],"f1":[{"i0":2,"i1":3},{"i1":5}]}])"), max_serialization_time, true),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("v1", fc::json::from_string(R"(["s4",{"f0":[0,1],"f1":[{"i0":2,"i1":3},{"i1":5}]}])"), abi_serializer::create_yield_function( max_serialization_time ), true),
                              pack_exception, fc_exception_message_is("Missing field 'i0' in input object while processing struct 's1'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2[]", fc::json::from_string(R"([{"f0":{"i0":1,"i1":2},"i2":3},{"f0":{"i0":4},"i2":6}])"), max_serialization_time, true),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s2[]", fc::json::from_string(R"([{"f0":{"i0":1,"i1":2},"i2":3},{"f0":{"i0":4},"i2":6}])"), abi_serializer::create_yield_function( max_serialization_time ), true),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's1'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s5", fc::json::from_string(R"({"f0":[["bar",{"f0":{"i0":1,"i1":2},"i2":3}],["foo",{"f0":{"i0":4},"i2":6}]]})"), max_serialization_time, true),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s5", fc::json::from_string(R"({"f0":[["bar",{"f0":{"i0":1,"i1":2},"i2":3}],["foo",{"f0":{"i0":4},"i2":6}]]})"), abi_serializer::create_yield_function( max_serialization_time ), true),
                              pack_exception, fc_exception_message_is("Missing field 'i1' in input object while processing struct 's1'") );
 
-      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s1arrayarray", fc::json::from_string(R"([[{"i0":1,"i1":2},{"i0":3,"i1":4}],[{"i0":6,"i1":6},{"i0":7,"i1":8},{"i1":10}]])"), max_serialization_time, true),
+      BOOST_CHECK_EXCEPTION( abis.variant_to_binary("s1arrayarray", fc::json::from_string(R"([[{"i0":1,"i1":2},{"i0":3,"i1":4}],[{"i0":6,"i1":6},{"i0":7,"i1":8},{"i1":10}]])"), abi_serializer::create_yield_function( max_serialization_time ), true),
                              pack_exception, fc_exception_message_is("Missing field 'i0' in input object while processing struct 's1'") );
    } FC_LOG_AND_RETHROW()
 }
@@ -2679,43 +2726,63 @@ BOOST_AUTO_TEST_CASE(abi_deserialize_detailed_error_messages)
    })";
 
    try {
-      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), max_serialization_time );
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("020102").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("020102").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Stream unexpectedly ended; unable to unpack field 'f1' of struct 's2'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("0201020103").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("0201020103").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Stream unexpectedly ended; unable to unpack field 'i1' of struct 's2.f1[0]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("020102ff").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s2", fc::variant("020102ff").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Unable to unpack size of array 's2.f1'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s3", fc::variant("010203").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s3", fc::variant("010203").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              abi_exception, fc_exception_message_is("Encountered field 'i5' without binary extension designation while processing struct 's3'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s3", fc::variant("02010304").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s3", fc::variant("02010304").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              abi_exception, fc_exception_message_is("Encountered field 'i5' without binary extension designation while processing struct 's3'") );
 
       // This check actually points to a problem with the current abi_serializer.
       // An array of optionals (which is unfortunately not rejected in validation) leads to an unpack_exception here because one of the optional elements is not present.
       // However, abis.binary_to_variant("s4", fc::variant("03010101020103").as<bytes>(), max_serialization_time) would work just fine!
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s4", fc::variant("030101000103").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s4", fc::variant("030101000103").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Invalid packed array 's4.f0[1]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s4", fc::variant("020101").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s4", fc::variant("020101").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Unable to unpack optional of built-in type 'int8' while processing 's4.f0[1]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("02010102").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("02010102").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Unable to unpack presence flag of optional 's5.f0[1]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("0001").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("0001").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Unable to unpack tag of variant 's5.f1[0]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("00010501").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("00010501").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Unpacked invalid tag (5) for variant 's5.f1[0]'") );
 
-      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("00010101").as<bytes>(), max_serialization_time),
+      BOOST_CHECK_EXCEPTION( abis.binary_to_variant("s5", fc::variant("00010101").as<bytes>(), abi_serializer::create_yield_function( max_serialization_time )),
                              unpack_exception, fc_exception_message_is("Stream unexpectedly ended; unable to unpack field 'i1' of struct 's5.f1[0].<variant(1)=s1>'") );
+
+   } FC_LOG_AND_RETHROW()
+}
+
+BOOST_AUTO_TEST_CASE(serialize_optional_struct_type)
+{
+   auto abi = R"({
+      "version": "eosio::abi/1.0",
+      "structs": [
+         {"name": "s", "base": "", "fields": [
+            {"name": "i0", "type": "int8"}
+         ]},
+      ],
+   })";
+
+   try {
+      abi_serializer abis( fc::json::from_string(abi).as<abi_def>(), abi_serializer::create_yield_function( max_serialization_time ) );
+
+      verify_round_trip_conversion(abis, "s?", R"({"i0":5})", "0105");
+      verify_round_trip_conversion(abis, "s?", R"(null)", "00");
 
    } FC_LOG_AND_RETHROW()
 }
