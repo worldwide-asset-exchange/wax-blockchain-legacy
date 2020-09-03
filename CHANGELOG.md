@@ -1,13 +1,24 @@
 # Changelog
 
-## Pending (wax-x.y.z-a.b.c)
+## Pending (vx.y.zwax<sub version>)
 
 BREAKING CHANGES:
 
 FEATURES:
 
 IMPROVEMENTS:
-- Update wax peers for mainnet example
+
+BUG FIXES:
+
+## v2.0.5wax01
+
+BREAKING CHANGES:
+- EOSIO 2.0.5 upgrade by cc32d9
+
+FEATURES:
+
+IMPROVEMENTS:
+- Update docker image for mainnnet sample
 
 BUG FIXES:
 
