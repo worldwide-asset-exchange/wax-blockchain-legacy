@@ -25,7 +25,7 @@ You have several ways to run a node and develop smart contracts on the WAX Block
 2. Complete our [Docker Quickstart](https://developer.wax.io/dapps/docker-quickstart/). You can also find WAX tutorials in the [dApp Development](https://developer.wax.io/dapps/) section of the [WAX Blockchain Developer Hive](https://developer.wax.io/).
 3. Currently, we are not providing pre-compiled packages. Therefore, if you can't use our Docker images, you will have to compile the source code and install it with the following instructions:
 
-**Note:** Building from source is not supported. We recommend using our [Docker Images](https://hub.docker.com/u/waxteam) instead. 
+**Note:** Building from source is not supported. We recommend using our [Docker Images](https://hub.docker.com/u/waxteam) instead.
 
 ```console
 
@@ -70,4 +70,3 @@ WAX currently supports the following operating systems:
 
 ### License
 [MIT](https://github.com/worldwide-asset-exchange/wax-blockchain/blob/master/LICENSE)
-
