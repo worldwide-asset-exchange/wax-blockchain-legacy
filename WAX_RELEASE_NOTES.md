@@ -49,4 +49,8 @@ testing can succeed on WAX.
 
 EOSIO 2.0.9 merged
 
+## Release `v2.0.10wax01`
+
+EOSIO 2.0.10 merged
+
 
