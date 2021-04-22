@@ -57,3 +57,6 @@ EOSIO 2.0.10 merged
 
 EOSIO 2.0.11 merged
 
+## Release `v2.0.12wax01`
+
+EOSIO 2.0.12 merged
