@@ -60,3 +60,8 @@ EOSIO 2.0.11 merged
 ## Release `v2.0.12wax01`
 
 EOSIO 2.0.12 merged
+
+## Release `v2.0.12wax02`
+
+Merged patches from https://github.com/EOSIO/eos/issues/10228
+
