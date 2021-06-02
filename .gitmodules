@@ -9,9 +9,6 @@
 [submodule "libraries/softfloat"]
 	path = libraries/softfloat
 	url = https://github.com/eosio/berkeley-softfloat-3
-[submodule "libraries/fc"]
-	path = libraries/fc
-	url = https://github.com/EOSIO/fc
 [submodule "libraries/wabt"]
 	path = libraries/wabt
 	url = https://github.com/EOSIO/wabt
@@ -24,3 +21,7 @@
 [submodule "eosio-wasm-spec-tests"]
 	path = eosio-wasm-spec-tests
 	url = https://github.com/EOSIO/eosio-wasm-spec-tests
+[submodule "libraries/fc"]
+	path = libraries/fc
+	url = https://github.com/EOSIO/fc.git
+	branch = eosio-2.0.x
