@@ -45,6 +45,18 @@ Testing scripts were adjusted and bugfixed, so that full automated
 testing can succeed on WAX.
 
 
+## Release `v2.0.9wax01`
 
+EOSIO 2.0.9 merged
 
+## Release `v2.0.10wax01`
 
+EOSIO 2.0.10 merged
+
+## Release `v2.0.11wax01`
+
+EOSIO 2.0.11 merged
+
+## Release `v2.0.12wax01`
+
+EOSIO 2.0.12 merged

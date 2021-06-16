@@ -81,6 +81,7 @@ public:
 
    bool                   is_producer_key(const chain::public_key_type& key) const;
    chain::signature_type  sign_compact(const chain::public_key_type& key, const fc::sha256& digest) const;
+   uint32_t get_subjective_bill( const account_name& first_auth, const fc::time_point& now ) const;
 
    virtual void plugin_initialize(const boost::program_options::variables_map& options);
    virtual void plugin_startup();
@@ -110,7 +111,9 @@ public:
 
    get_account_ram_corrections_result  get_account_ram_corrections( const get_account_ram_corrections_params& params ) const;
 
-private:
+   void log_failed_transaction(const transaction_id_type& trx_id, const char* reason) const;
+
+ private:
    std::shared_ptr<class producer_plugin_impl> my;
 };
 
