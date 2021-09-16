@@ -64,3 +64,7 @@ EOSIO 2.0.12 merged
 ## Release `v2.0.13wax01`
 
 EOSIO 2.0.13 merged
+
+## pre-release `v2.0.13wax02patch20210909`
+
+Merge from release/2.0.x commit 7dac9a2a16ddd5877db01dae29c5ddcf6c52e44f
