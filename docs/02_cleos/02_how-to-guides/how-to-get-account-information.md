@@ -1,6 +1,6 @@
 ## Goal
 
-Query infomation of an EOSIO account
+Query information of an EOSIO account
 
 ## Before you begin
 
