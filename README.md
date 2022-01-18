@@ -13,7 +13,7 @@ WAX is creating a suite of blockchain-based tools upon which dApps, marketplaces
 5. [WAX Account - Account Creation, Voting, Token Swap, and Balances](https://wax.io/blog/a-sneak-peek-of-wax-account-features)
 6. [Integrated with the OPSkins customer base (and other reasons to run dApps on WAX)](https://wax.io/blog/the-top-10-reasons-to-run-dapps-on-wax)
 
-These features are in addition to the benefits you will find on [EOSIO](https://github.com/EOSIO). The WAX Blockchain is a variant of EOSIO v1.6.1
+These features are in addition to the benefits you will find on [EOSIO](https://github.com/EOSIO). The WAX Blockchain is a variant of EOSIO (see [WAX_RELEASE_NOTES.md](WAX_RELEASE_NOTES.md) for details).
 
 WAX is released under the open source MIT license and is offered “AS IS” without warranty of any kind, express or implied. Any security provided by the WAX software depends in part on how it is used, configured, and deployed. WAX is built upon many third-party libraries such as WABT (Apache License) and WAVM (BSD 3-clause), which are also provided “AS IS” without warranty of any kind. Without limiting the generality of the foregoing, WAX makes no representation or guarantee (and disclaims all implied warranties and guarantees) that WAX or any third-party libraries will perform as intended or will be free of errors, bugs or faulty code. Both may fail in large or small ways that could completely or partially limit functionality or compromise computer systems. If you use or implement WAX, you do so at your own risk. In no event will WAX be liable to any party for any damages whatsoever, even if it had been advised of the possibility of damage.
 
