@@ -64,3 +64,9 @@ EOSIO 2.0.12 merged
 ## Release `v2.0.13wax01`
 
 EOSIO 2.0.13 merged
+
+## Release `v2.0.13wax03`
+
+EOSIO branch release/2.0.x merged up to commit 173261f4 (Big ship deltas - 2.0)
+
+
